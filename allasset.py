@@ -6,8 +6,8 @@ import time
 import requests
 
 # Set API parameters
-accessKey = '75888af900c09b06ea76bababc322fb31d3ee6665021cf'
-secretKey = 'NDViNjE4ZTc1ODUxNjdmMTgzZmYwZWMwOTYwMjliMDZiY2I5YmUzMjJiYjExZDM5ZTg2YjU2MjFjNWYzOA=='
+accessKey = ''
+secretKey = ''
 apiUrl = 'https://api.bithumb.com'
 
 # Generate access token
