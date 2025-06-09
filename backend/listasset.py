@@ -10,7 +10,7 @@ accessKey = ''
 secretKey = ''
 apiUrl = 'https://api.bithumb.com'
 
-with open('pass.txt', 'r') as f:
+with open('../pass.txt', 'r') as f:
     tlines = f.readlines()
     for t in tlines:
         if t[-1] == '\n':
