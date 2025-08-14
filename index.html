@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RichCoin - Asset Management Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            font-size: 16px; /* Base font size for mobile */
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px; /* Reduced padding for mobile */
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px; /* Reduced margin for mobile */
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+            gap: 10px;
+        }
+
+        .header-content {
+            text-align: center;
+            flex-grow: 1;
+            min-width: 200px; /* Minimum width for content */
+        }
+
+        .header h1 {
+            font-size: 2rem; /* Smaller font for mobile */
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            word-wrap: break-word;
+        }
+
+        .header p {
+            font-size: 1rem; /* Smaller font for mobile */
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Smaller minimum for mobile */
+            gap: 15px; /* Reduced gap for mobile */
+            margin-bottom: 20px; /* Reduced margin for mobile */
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px; /* Slightly smaller radius */
+            padding: 20px; /* Reduced padding for mobile */
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-3px); /* Reduced hover effect for mobile */
+            box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 12px;
+            font-size: 1.3rem; /* Smaller font for mobile */
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px; /* Reduced gap for mobile */
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 12px; /* Reduced padding for mobile */
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem; /* Smaller font for mobile */
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.8rem; /* Smaller font for mobile */
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .api-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px; /* Reduced padding for mobile */
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            margin-bottom: 15px; /* Reduced margin for mobile */
+        }
+
+        .api-section h2 {
+            margin-top: 0;
+            color: #555;
+            font-size: 1.3rem; /* Smaller font for mobile */
+            margin-bottom: 15px;
+        }
+
+        .api-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .api-link {
+            display: block;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            text-align: center;
+            transition: transform 0.3s ease;
+            font-weight: 500;
+        }
+
+        .api-link:hover {
+            transform: translateY(-2px);
+            text-decoration: none;
+            color: white;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: #28a745;
+        }
+
+        .status-offline {
+            background: #dc3545;
+        }
+
+        .refresh-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #218838;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 14px; /* Smaller font for mobile tables */
+        }
+
+        .data-table th, .data-table td {
+            padding: 6px 4px; /* Reduced padding for mobile */
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            word-wrap: break-word;
+            max-width: 120px; /* Prevent table from being too wide */
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .data-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            font-size: 12px; /* Smaller header font for mobile */
+            white-space: nowrap;
+        }
+
+        .data-table td {
+            font-size: 12px; /* Smaller cell font for mobile */
+        }
+
+        .loading {
+            color: #666;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .edit-input {
+            width: 100px;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .submit-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .submit-btn:hover {
+            background: #218838;
+        }
+
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px; /* Smaller padding for mobile */
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px; /* Smaller font for mobile */
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+            white-space: nowrap;
+            min-width: 80px; /* Minimum touch target size */
+            min-height: 44px; /* Minimum touch target size */
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 5px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .header p {
+                font-size: 0.9rem;
+            }
+
+            .logout-btn {
+                padding: 10px 20px;
+                font-size: 14px;
+                min-width: 100px;
+            }
+
+            .api-section {
+                padding: 15px;
+                margin-bottom: 10px;
+            }
+
+            .api-section h2 {
+                font-size: 1.2rem;
+            }
+
+            .data-table {
+                font-size: 11px;
+            }
+
+            .data-table th, .data-table td {
+                padding: 4px 2px;
+                font-size: 10px;
+                max-width: 80px;
+            }
+
+            /* Make tables scrollable horizontally on mobile */
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+                         /* Input fields for sell table */
+             input[type="text"], input[type="number"] {
+                 padding: 6px;
+                 font-size: 12px;
+                 min-height: 40px; /* Touch-friendly size */
+                 width: 70px;
+                 min-width: 70px;
+                 margin-bottom: 5px;
+             }
+
+                         /* Button in sell table */
+             button[onclick="updateSellData()"] {
+                 padding: 6px 10px;
+                 font-size: 12px;
+                 min-height: 40px;
+                 width: auto;
+                 margin-top: 5px;
+             }
+
+                         /* Sell table input container */
+             .sell-inputs {
+                 display: flex;
+                 flex-direction: row;
+                 flex-wrap: nowrap;
+                 gap: 5px;
+                 overflow-x: auto;
+                 -webkit-overflow-scrolling: touch;
+             }
+        }
+
+        /* Extra small screens */
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .header p {
+                font-size: 0.8rem;
+            }
+
+            .data-table {
+                font-size: 10px;
+            }
+
+            .data-table th, .data-table td {
+                padding: 3px 1px;
+                font-size: 9px;
+                max-width: 60px;
+            }
+
+            .api-section {
+                padding: 10px;
+            }
+
+            .api-section h2 {
+                font-size: 1.1rem;
+            }
+        }
+
+        /* Touch-friendly improvements */
+        @media (hover: none) and (pointer: coarse) {
+            /* Disable hover effects on touch devices */
+            .card:hover {
+                transform: none;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            }
+
+            .button:hover {
+                background: #007bff;
+            }
+
+            .logout-btn:hover {
+                background: #e74c3c;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1>💰 RichCoin</h1>
+                <p>Asset Management Dashboard</p>
+            </div>
+            <button onclick="logout()" class="logout-btn">🚪 Logout</button>
+        </div>
+
+                 <div class="api-section">
+             <div style="display: flex; align-items: center; margin-bottom: 15px; gap: 80px;">
+                 <h2 style="margin: 0;">📊 Assets Overview</h2>
+                 <div id="total-value-display" style="font-size: 1.2rem; font-weight: bold; color: #667eea; background: #f8f9fa; padding: 8px 12px; border-radius: 6px; min-width: 150px; text-align: right;">
+                     Total: ₩0
+                 </div>
+             </div>
+             <div id="assets-container">
+                 <div class="loading">Loading assets automatically every 0.5 seconds...</div>
+             </div>
+         </div>
+
+                 <div class="api-section">
+             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                 <h2 style="margin: 0;">💰 Sell Table</h2>
+                 <button id="sell-auto-toggle" onclick="toggleSellAuto()" style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; min-height: 32px;">Sell Auto: OFF</button>
+             </div>
+            <div id="sell-table-container">
+                <div class="loading">Loading sell data automatically every 0.5 seconds...</div>
+            </div>
+                         <div style="margin-top: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: nowrap; overflow-x: auto;" class="sell-inputs">
+                                 <input type="text" id="new-currency" placeholder="Currency" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 80px; min-width: 80px; min-height: 44px; font-size: 14px; flex-shrink: 0;">
+                 <input type="number" id="new-sell-price" placeholder="Price" step="1" min="0" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 80px; min-width: 80px; min-height: 44px; font-size: 14px; flex-shrink: 0;">
+                 <input type="number" id="new-profit-rate" placeholder="Rate" step="0.1" min="0" max="100" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 80px; min-width: 80px; min-height: 44px; font-size: 14px; flex-shrink: 0;">
+                 <button onclick="updateSellData()" style="background: #28a745; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; min-height: 44px; font-size: 14px; flex-shrink: 0;">Update</button>
+            </div>
+        </div>
+
+        <div class="api-section">
+            <h2>📋 Orders Overview</h2>
+            <div id="orders-container">
+                <div class="loading">Loading orders automatically every 0.5 seconds...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dynamic API base URL that works from any host
+        const API_BASE = window.location.protocol + '//' + window.location.hostname + ':8003';
+        let autoRefreshInterval;
+        let refreshCount = 0;
+        let auto_sell = false; // Internal variable for sell auto toggle
+        let tokenRefreshInterval; // Interval for token refresh
+        let isLoggedIn = false; // Track login state
+
+        // Check API status on page load and start auto-refresh
+        window.onload = function() {
+            checkLoginStatus();
+            checkApiStatus();
+            loadAutoSellStatus();
+            startAutoRefresh();
+            startTokenRefresh(); // Start automatic token refresh
+        };
+
+        // Check if user is logged in and handle session persistence
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/assets`, {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    isLoggedIn = true;
+                    console.log('User is logged in - session active');
+                } else if (response.status === 401) {
+                    // Token expired or invalid, try to refresh
+                    await refreshToken();
+                } else {
+                    // Other error, redirect to login
+                    redirectToLogin();
+                }
+            } catch (error) {
+                console.error('Error checking login status:', error);
+                redirectToLogin();
+            }
+        }
+
+        // Refresh token automatically to maintain persistent login
+        async function refreshToken() {
+            try {
+                const response = await fetch(`${API_BASE}/refresh-token`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    isLoggedIn = true;
+                    console.log('Token refreshed successfully');
+                    return true;
+                } else {
+                    console.log('Token refresh failed, redirecting to login');
+                    redirectToLogin();
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error refreshing token:', error);
+                redirectToLogin();
+                return false;
+            }
+        }
+
+        // Start automatic token refresh every 6 days (before 7-day expiration)
+        function startTokenRefresh() {
+            // Clear any existing interval
+            if (tokenRefreshInterval) {
+                clearInterval(tokenRefreshInterval);
+            }
+            
+            // Refresh token every 6 days (6 * 24 * 60 * 60 * 1000 milliseconds)
+            tokenRefreshInterval = setInterval(async () => {
+                console.log('Performing automatic token refresh...');
+                await refreshToken();
+            }, 6 * 24 * 60 * 60 * 1000);
+        }
+
+        // Redirect to login page
+        function redirectToLogin() {
+            isLoggedIn = false;
+            console.log('Redirecting to login page');
+            window.location.href = `${API_BASE}/`;
+        }
+
+        // Handle page visibility changes to refresh token when user returns
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && isLoggedIn) {
+                // User returned to the page, refresh token if needed
+                console.log('Page became visible, checking token status...');
+                checkLoginStatus();
+            }
+        });
+
+        // Handle beforeunload to ensure session persists
+        window.addEventListener('beforeunload', function() {
+            // Don't clear anything - let the session persist
+            console.log('Page unloading, maintaining session...');
+        });
+
+        function startAutoRefresh() {
+            // Clear any existing interval
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+            
+            // Start auto-refresh every 0.5 seconds
+            autoRefreshInterval = setInterval(() => {
+                refreshCount++; // Increment refresh count for alternating header color
+                loadAssets();
+                loadOrders();
+                loadSellTable();
+            }, 500);
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+
+        async function checkApiStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/`);
+                const data = await response.json();
+                
+                // Load initial data immediately
+                loadAssets();
+                loadOrders();
+                loadSellTable();
+            } catch (error) {
+                console.error('API is not available:', error);
+            }
+        }
+
+        async function loadAutoSellStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/auto-sell`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                
+                if (data.auto_sell !== undefined) {
+                    auto_sell = data.auto_sell;
+                    updateAutoSellButton();
+                }
+            } catch (error) {
+                console.error('Error loading auto sell status:', error);
+            }
+        }
+
+        async function loadAssets() {
+            const container = document.getElementById('assets-container');
+            
+            // Preserve scroll position
+            const tableContainer = container.querySelector('.table-container');
+            const scrollLeft = tableContainer ? tableContainer.scrollLeft : 0;
+            
+            // Only show loading message if container is empty
+            if (container.innerHTML.includes('Click "View Assets" to load data...') || 
+                container.innerHTML.includes('Loading assets...')) {
+            container.innerHTML = '<div class="loading">Loading assets...</div>';
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/assets`, {
+                    credentials: 'include'
+                });
+                
+                // Handle authentication errors
+                if (response.status === 401) {
+                    if (await refreshToken()) {
+                        // Retry the request after token refresh
+                        const retryResponse = await fetch(`${API_BASE}/assets`, {
+                            credentials: 'include'
+                        });
+                        if (retryResponse.ok) {
+                            const assets = await retryResponse.json();
+                            displayAssets(assets, container, scrollLeft);
+                        } else {
+                            container.innerHTML = `<div class="loading">Error: Authentication failed</div>`;
+                        }
+                    } else {
+                        container.innerHTML = `<div class="loading">Error: Authentication failed</div>`;
+                    }
+                    return;
+                }
+                
+                if (!response.ok) {
+                    container.innerHTML = `<div class="loading">Error: ${response.status} ${response.statusText}</div>`;
+                    return;
+                }
+                
+                const assets = await response.json();
+                displayAssets(assets, container, scrollLeft);
+                
+            } catch (error) {
+                container.innerHTML = `<div class="loading">Error loading assets: ${error.message}</div>`;
+            }
+        }
+
+        function displayAssets(assets, container, scrollLeft) {
+            if (assets.error) {
+                container.innerHTML = `<div class="loading">Error: ${assets.error}</div>`;
+                return;
+            }
+
+            let totalValue = 0;
+            const backgroundColor = refreshCount % 2 === 0 ? '#fff3cd' : '#d1ecf1';
+            console.log(`Refresh count: ${refreshCount}, Background color: ${backgroundColor}`);
+            let html = `
+                <div style="background-color: ${backgroundColor}; padding: 15px; border-radius: 8px;">
+                    <div class="table-container" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                        <table class="data-table" style="min-width: 600px; font-size: 12px; width: 100%; min-width: 400px;">
+                                                         <thead>
+                                 <tr style="padding: 6px 0;">
+                                     <th style="padding: 6px 8px; width: 80px; min-width: 80px;">Currency</th>
+                                     <th style="padding: 6px 8px; width: 80px; min-width: 80px; text-align: right;">Volume</th>
+                                     <th style="padding: 6px 8px; width: 100px; min-width: 100px; text-align: right;">Avg Buy Price</th>
+                                     <th style="padding: 6px 8px; width: 80px; min-width: 80px; text-align: right;">Price</th>
+                                     <th style="padding: 6px 8px; width: 80px; min-width: 80px; text-align: right;">Buy</th>
+                                     <th style="padding: 6px 8px; width: 80px; min-width: 80px; text-align: right;">Valued</th>
+                                     <th style="padding: 6px 8px; width: 80px; min-width: 80px; text-align: right;">Profit</th>
+                                     <th style="padding: 6px 8px; width: 80px; min-width: 80px; text-align: right;">Rate</th>
+                                 </tr>
+                             </thead>
+                            <tbody>
+            `;
+
+            // First pass: calculate total value and build asset rows
+            let assetRows = [];
+            let totalValueExcludingKrw = 0;
+            let krwVolume = 0;
+            
+            assets.forEach(asset => {
+                // Skip currency 'P'
+                if (asset.currency === 'P') {
+                    return;
+                }
+                
+                // Calculate total value excluding KRW and get KRW volume
+                if (asset.currency === 'KRW') {
+                    krwVolume = asset.total_coin || 0;
+                } else {
+                    if (asset.current_amount) {
+                        totalValueExcludingKrw += asset.current_amount;
+                    }
+                }
+                
+                // Check if there's a sell order for this currency
+                const sellOrder = window.currentOrders ? window.currentOrders.find(order => 
+                    order.currency === asset.currency && order.side === 'ask'
+                ) : null;
+                
+                assetRows.push({
+                    currency: asset.currency,
+                    html: `
+                        <tr onclick="fillCurrencyField('${asset.currency}')" style="cursor: pointer; padding: 4px 0;">
+                                                         <td style="padding: 4px 8px; width: 80px; min-width: 80px;"><strong>${asset.currency}</strong></td>
+                                                          <td style="padding: 4px 8px; width: 80px; min-width: 80px; text-align: right;">${asset.total_coin ? asset.total_coin.toFixed(4) : '0.0000'}</td>
+                             <td style="padding: 4px 8px; width: 100px; min-width: 100px; text-align: right;">${asset.avg_buy_price.toLocaleString()}</td>
+                             <td style="padding: 4px 8px; width: 80px; min-width: 80px; text-align: right;">
+                                 ${asset.current_price ? asset.current_price.toLocaleString() : '0'}
+                                 ${sellOrder ? `<br><span style="color: #dc3545;">${sellOrder.price.toLocaleString()}</span>` : ''}
+                             </td>
+                             <td style="padding: 4px 8px; width: 80px; min-width: 80px; text-align: right;">${asset.buy_amount ? asset.buy_amount.toLocaleString() : '0'}</td>
+                                                          <td style="padding: 4px 8px; width: 80px; min-width: 80px; text-align: right;">${asset.current_amount ? asset.current_amount.toLocaleString() : '0'}</td>
+                             <td style="padding: 4px 8px; width: 80px; min-width: 80px; text-align: right;">${asset.profit_loss ? asset.profit_loss.toLocaleString() : '0'}</td>
+                             <td style="padding: 4px 8px; width: 80px; min-width: 80px; text-align: right;">${asset.profit_rate ? (asset.profit_rate * 100).toFixed(2) + '%' : '0.00%'}</td>
+                        </tr>
+                    `
+                });
+            });
+            
+                         // Calculate total value for display: sum of all other currencies' current amounts + KRW volume
+             const totalValueForDisplay = totalValueExcludingKrw + krwVolume;
+ 
+                                         // Update the total value display
+                            const totalValueDisplay = document.getElementById('total-value-display');
+                            if (totalValueDisplay) {
+                                totalValueDisplay.innerHTML = `Total: ₩${Math.floor(totalValueForDisplay).toLocaleString()}`;
+                            }
+                            
+                            // Update the browser window title with the KRW total
+                            document.title = `₩${Math.floor(totalValueForDisplay).toLocaleString()} - RichCoin`;
+ 
+                          // Second pass: render rows, skip KRW row
+             assetRows.forEach(row => {
+                 if (row.currency !== 'KRW') {
+                     // For other currencies, use the original row
+                     html += row.html;
+                 }
+             });
+
+            html += '</tbody></table></div></div>';
+            container.innerHTML = html;
+            
+            // Restore scroll position
+            const newTableContainer = container.querySelector('.table-container');
+            if (newTableContainer) {
+                newTableContainer.scrollLeft = scrollLeft;
+            }
+        }
+
+        async function loadOrders() {
+            const container = document.getElementById('orders-container');
+            
+            // Preserve scroll position
+            const tableContainer = container.querySelector('.table-container');
+            const scrollLeft = tableContainer ? tableContainer.scrollLeft : 0;
+            
+            // Only show loading message if container is empty
+            if (container.innerHTML.includes('Click "View Orders" to load data...') || 
+                container.innerHTML.includes('Loading orders...')) {
+            container.innerHTML = '<div class="loading">Loading orders...</div>';
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/orders`, {
+                    credentials: 'include'
+                });
+                
+                // Handle authentication errors
+                if (response.status === 401) {
+                    if (await refreshToken()) {
+                        // Retry the request after token refresh
+                        const retryResponse = await fetch(`${API_BASE}/orders`, {
+                            credentials: 'include'
+                        });
+                        if (retryResponse.ok) {
+                            const orders = await retryResponse.json();
+                            // Store orders globally for use in assets display
+                            window.currentOrders = orders;
+                            displayOrders(orders, container, scrollLeft);
+                        } else {
+                            container.innerHTML = `<div class="loading">Error: Authentication failed</div>`;
+                        }
+                    } else {
+                        container.innerHTML = `<div class="loading">Error: Authentication failed</div>`;
+                    }
+                    return;
+                }
+                
+                if (!response.ok) {
+                    container.innerHTML = `<div class="loading">Error: ${response.status} ${response.statusText}</div>`;
+                    return;
+                }
+                
+                const orders = await response.json();
+                // Store orders globally for use in assets display
+                window.currentOrders = orders;
+                displayOrders(orders, container, scrollLeft);
+                
+            } catch (error) {
+                container.innerHTML = `<div class="loading">Error loading orders: ${error.message}</div>`;
+            }
+        }
+
+        function displayOrders(orders, container, scrollLeft) {
+            if (orders.error) {
+                container.innerHTML = `<div class="loading">Error: ${orders.error}</div>`;
+                return;
+            }
+
+                        // Sort orders by currency first, then by price in descending order
+            const sortedOrders = orders.sort((a, b) => {
+                // First sort by currency
+                const currencyCompare = a.currency.localeCompare(b.currency);
+                if (currencyCompare !== 0) {
+                    return currencyCompare;
+                }
+                // If currencies are the same, sort by price (descending)
+                return b.price - a.price;
+            });
+
+            let html = `
+                <div class="table-container" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                    <table class="data-table" style="min-width: 500px; font-size: 12px;">
+                        <thead>
+                             <tr style="padding: 6px 0;">
+                                 <th style="padding: 6px 8px; width: 80px; min-width: 80px;">Currency</th>
+                                 <th style="padding: 6px 8px; width: 60px; min-width: 60px;">Side</th>
+                                 <th style="padding: 6px 8px; width: 50px; min-width: 50px; text-align: right;">Price</th>
+                                 <th style="padding: 6px 8px; width: 56px; min-width: 56px; text-align: right;">Amount</th>
+                                 <th style="padding: 6px 8px; width: 80px; min-width: 80px; text-align: right;">Remaining</th>
+                                 <th style="padding: 6px 8px; width: 80px; min-width: 80px;">State</th>
+                                 <th style="padding: 6px 8px; width: 80px; min-width: 80px;">Action</th>
+                             </tr>
+                         </thead>
+                         <tbody>
+             `;
+
+                          html += sortedOrders.map(order => `
+                  <tr onclick="fillCurrencyField('${order.currency}')" style="cursor: pointer; padding: 4px 0;">
+                      <td style="padding: 4px 8px; width: 80px; min-width: 80px;">${order.currency}</td>
+                      <td style="padding: 4px 8px; width: 60px; min-width: 60px;">${order.buysell}</td>
+                      <td style="padding: 4px 8px; width: 50px; min-width: 50px; text-align: right;">${order.price.toLocaleString()}</td>
+                      <td style="padding: 4px 8px; width: 56px; min-width: 56px; text-align: right;">${Math.floor(order.volume * order.price).toLocaleString()}</td>
+                      <td style="padding: 4px 8px; width: 80px; min-width: 80px; text-align: right;">${order.remaining_volume.toFixed(4)}</td>
+                      <td style="padding: 4px 8px; width: 80px; min-width: 80px;">${order.state}</td>
+                      <td style="padding: 4px 8px; width: 80px; min-width: 80px;">
+                          <button onclick="cancelOrder('${order.uuid}')" 
+                                  style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; min-height: 32px;"
+                                  onclick="event.stopPropagation();">
+                              Cancel
+                          </button>
+                      </td>
+                  </tr>
+              `).join('');
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+            
+            // Restore scroll position
+            const newTableContainer = container.querySelector('.table-container');
+            if (newTableContainer) {
+                newTableContainer.scrollLeft = scrollLeft;
+            }
+        }
+
+        async function loadSellTable() {
+            const container = document.getElementById('sell-table-container');
+            
+            // Preserve scroll position
+            const tableContainer = container.querySelector('.table-container');
+            const scrollLeft = tableContainer ? tableContainer.scrollLeft : 0;
+            
+            // Only show loading message if container is empty
+            if (container.innerHTML.includes('Loading sell data automatically every 2 seconds...') || 
+                container.innerHTML.includes('Loading sell data...')) {
+                container.innerHTML = '<div class="loading">Loading sell data...</div>';
+            }
+
+            try {
+                // Fetch sell prices and profit rates
+                const [sellPricesResponse, profitRatesResponse] = await Promise.all([
+                    fetch(`${API_BASE}/sell-prices`, { credentials: 'include' }),
+                    fetch(`${API_BASE}/profit-rates`, { credentials: 'include' })
+                ]);
+
+                // Handle authentication errors
+                if (sellPricesResponse.status === 401 || profitRatesResponse.status === 401) {
+                    if (await refreshToken()) {
+                        // Retry the requests after token refresh
+                        const [retrySellPricesResponse, retryProfitRatesResponse] = await Promise.all([
+                            fetch(`${API_BASE}/sell-prices`, { credentials: 'include' }),
+                            fetch(`${API_BASE}/profit-rates`, { credentials: 'include' })
+                        ]);
+                        if (retrySellPricesResponse.ok && retryProfitRatesResponse.ok) {
+                            const sellPrices = await retrySellPricesResponse.json();
+                            const profitRates = await retryProfitRatesResponse.json();
+                            displaySellTable(sellPrices, profitRates, container, scrollLeft);
+                        } else {
+                            container.innerHTML = `<div class="loading">Error: Authentication failed</div>`;
+                        }
+                    } else {
+                        container.innerHTML = `<div class="loading">Error: Authentication failed</div>`;
+                    }
+                    return;
+                }
+
+                const sellPrices = await sellPricesResponse.json();
+                const profitRates = await profitRatesResponse.json();
+                displaySellTable(sellPrices, profitRates, container, scrollLeft);
+                
+            } catch (error) {
+                container.innerHTML = `<div class="loading">Error loading sell data: ${error.message}</div>`;
+            }
+        }
+
+        function displaySellTable(sellPrices, profitRates, container, scrollLeft) {
+            // Get all unique currencies from both dictionaries
+            const allCurrencies = new Set([
+                ...Object.keys(sellPrices),
+                ...Object.keys(profitRates)
+            ]);
+
+            let html = `
+                <div class="table-container" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                    <table class="data-table" style="font-size: 12px; width: 100%; min-width: 400px;">
+                        <thead>
+                            <tr style="padding: 6px 0;">
+                                <th style="padding: 6px 8px; width: 25%; min-width: 80px;">Currency</th>
+                                <th style="padding: 6px 8px; width: 25%; min-width: 80px;">Price</th>
+                                <th style="padding: 6px 8px; width: 25%; min-width: 80px;">Rate</th>
+                                <th style="padding: 6px 8px; width: 25%; min-width: 80px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            let rowIndex = 0;
+            allCurrencies.forEach(currency => {
+                const price = sellPrices[currency] || 0;
+                const rate = profitRates[currency] || 0;
+                const backgroundColor = rowIndex % 2 === 0 ? '#f8f9fa' : '#ffffff';
+                
+                html += `
+                    <tr style="cursor: pointer; padding: 4px 0; background-color: ${backgroundColor};">
+                        <td onclick="fillInputFields('${currency}', ${price}, ${rate})" style="padding: 4px 8px; width: 25%; min-width: 80px;"><strong>${currency}</strong></td>
+                        <td onclick="fillInputFields('${currency}', ${price}, ${rate})" style="padding: 4px 8px; width: 25%; min-width: 80px;">${price.toLocaleString()}</td>
+                        <td onclick="fillInputFields('${currency}', ${price}, ${rate})" style="padding: 4px 8px; width: 25%; min-width: 80px;">${rate.toFixed(2)}%</td>
+                        <td style="padding: 4px 8px; width: 25%; min-width: 80px;">
+                            <button onclick="deleteSellData('${currency}')" 
+                                    style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; min-height: 32px;"
+                                    onclick="event.stopPropagation();">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                rowIndex++;
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+            
+            // Restore scroll position
+            const newTableContainer = container.querySelector('.table-container');
+            if (newTableContainer) {
+                newTableContainer.scrollLeft = scrollLeft;
+            }
+        }
+
+        async function updateSellData() {
+            const currency = document.getElementById('new-currency').value;
+            const price = document.getElementById('new-sell-price').value;
+            const rate = document.getElementById('new-profit-rate').value;
+
+            if (!currency) {
+                alert('Please enter a currency.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/update-sell-price`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        currency: currency,
+                        price: price === '' ? 0 : parseFloat(price),
+                        rate: rate === '' ? 0 : parseFloat(rate)
+                    })
+                });
+                
+                // Handle authentication errors
+                if (response.status === 401) {
+                    if (await refreshToken()) {
+                        // Retry the request after token refresh
+                        const retryResponse = await fetch(`${API_BASE}/update-sell-price`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                currency: currency,
+                                price: price === '' ? 0 : parseFloat(price),
+                                rate: rate === '' ? 0 : parseFloat(rate)
+                            })
+                        });
+                        if (retryResponse.ok) {
+                            const data = await retryResponse.json();
+                            if (data.success) {
+                                alert('Sell price updated successfully!');
+                                loadSellTable(); // Refresh the table to show updated data
+                            } else {
+                                alert(`Error updating sell price: ${data.error}`);
+                            }
+                        } else {
+                            alert('Error updating sell price: Authentication failed');
+                        }
+                    } else {
+                        alert('Error updating sell price: Authentication failed');
+                    }
+                    return;
+                }
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Sell price updated successfully!');
+                    loadSellTable(); // Refresh the table to show updated data
+                } else {
+                    alert(`Error updating sell price: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`Error updating sell price: ${error.message}`);
+            }
+        }
+
+        async function deleteSellData(currency) {
+            if (!confirm(`Are you sure you want to delete sell data for ${currency}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/delete-sell-data`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        currency: currency
+                    })
+                });
+                
+                // Handle authentication errors
+                if (response.status === 401) {
+                    if (await refreshToken()) {
+                        // Retry the request after token refresh
+                        const retryResponse = await fetch(`${API_BASE}/delete-sell-data`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                currency: currency
+                            })
+                        });
+                        if (retryResponse.ok) {
+                            const data = await retryResponse.json();
+                            if (data.success) {
+                                loadSellTable(); // Refresh the table to show updated data
+                            } else {
+                                alert(`Error deleting sell data: ${data.error}`);
+                            }
+                        } else {
+                            alert('Error deleting sell data: Authentication failed');
+                        }
+                    } else {
+                        alert('Error deleting sell data: Authentication failed');
+                    }
+                    return;
+                }
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    loadSellTable(); // Refresh the table to show updated data
+                } else {
+                    alert(`Error deleting sell data: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`Error deleting sell data: ${error.message}`);
+            }
+        }
+
+        function fillInputFields(currency, price, rate) {
+            document.getElementById('new-currency').value = currency;
+            document.getElementById('new-sell-price').value = price;
+            document.getElementById('new-profit-rate').value = rate;
+        }
+
+        function fillCurrencyField(currency) {
+            document.getElementById('new-currency').value = currency;
+        }
+
+        async function cancelOrder(uuid) {
+            if (!confirm('Are you sure you want to cancel this order?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/cancel-order`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ uuid: uuid })
+                });
+                
+                // Handle authentication errors
+                if (response.status === 401) {
+                    if (await refreshToken()) {
+                        // Retry the request after token refresh
+                        const retryResponse = await fetch(`${API_BASE}/cancel-order`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ uuid: uuid })
+                        });
+                        if (retryResponse.ok) {
+                            const data = await retryResponse.json();
+                            if (data.success) {
+                                alert('Order cancelled successfully!');
+                                loadOrders(); // Refresh the orders table
+                            } else {
+                                alert(`Error cancelling order: ${data.error}`);
+                            }
+                        } else {
+                            alert('Error cancelling order: Authentication failed');
+                        }
+                    } else {
+                        alert('Error cancelling order: Authentication failed');
+                    }
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Order cancelled successfully!');
+                    loadOrders(); // Refresh the orders table
+                } else {
+                    alert(`Error cancelling order: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`Error cancelling order: ${error.message}`);
+            }
+        }
+
+        function refreshData() {
+            loadAssets();
+            loadOrders();
+            loadSellTable();
+        }
+
+        function updateAutoSellButton() {
+            const button = document.getElementById('sell-auto-toggle');
+            if (auto_sell) {
+                button.textContent = 'Sell Auto: ON';
+                button.style.background = '#28a745';
+            } else {
+                button.textContent = 'Sell Auto: OFF';
+                button.style.background = '#6c757d';
+            }
+        }
+
+        async function toggleSellAuto() {
+            try {
+                const response = await fetch(`${API_BASE}/toggle-auto-sell`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                // Handle authentication errors
+                if (response.status === 401) {
+                    if (await refreshToken()) {
+                        // Retry the request after token refresh
+                        const retryResponse = await fetch(`${API_BASE}/toggle-auto-sell`, {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                        if (retryResponse.ok) {
+                            const data = await retryResponse.json();
+                            if (data.success) {
+                                auto_sell = data.auto_sell;
+                                updateAutoSellButton();
+                                console.log('Sell Auto toggled:', auto_sell);
+                            } else {
+                                alert('Error toggling auto sell status');
+                            }
+                        } else {
+                            alert('Error toggling auto sell status: Authentication failed');
+                        }
+                    } else {
+                        alert('Error toggling auto sell status: Authentication failed');
+                    }
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    auto_sell = data.auto_sell;
+                    updateAutoSellButton();
+                    console.log('Sell Auto toggled:', auto_sell);
+                } else {
+                    alert('Error toggling auto sell status');
+                }
+            } catch (error) {
+                console.error('Error toggling auto sell:', error);
+                alert('Error toggling auto sell status');
+            }
+        }
+
+        async function logout() {
+            if (confirm('Are you sure you want to log out? This will end your persistent session.')) {
+                try {
+                    // Stop all intervals
+                    if (autoRefreshInterval) {
+                        clearInterval(autoRefreshInterval);
+                    }
+                    if (tokenRefreshInterval) {
+                        clearInterval(tokenRefreshInterval);
+                    }
+                    
+                    const response = await fetch(`${API_BASE}/logout`, {
+                        method: 'POST',
+                        credentials: 'include' // Include cookies in the request
+                    });
+                    
+                    // Check if response is ok first
+                    if (response.ok) {
+                        // Try to parse JSON response
+                        try {
+                            const data = await response.json();
+                            if (data.success) {
+                                alert('Logged out successfully!');
+                            } else {
+                                alert(`Logout message: ${data.message || 'Unknown response'}`);
+                            }
+                        } catch (parseError) {
+                            // If JSON parsing fails, still consider it a success
+                            alert('Logged out successfully!');
+                        }
+                    } else {
+                        // If response is not ok, still clear cookie and redirect
+                        alert('Logout completed (server response: ' + response.status + ')');
+                    }
+                    
+                    // Always clear cookie and redirect regardless of response
+                    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                    isLoggedIn = false;
+                    window.location.href = `${API_BASE}/`;
+                    
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    // Even if the logout request fails, clear the cookie and redirect
+                    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                    isLoggedIn = false;
+                    alert('Logged out (local cleanup completed)');
+                    window.location.href = `${API_BASE}/`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

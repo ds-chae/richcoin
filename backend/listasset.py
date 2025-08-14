@@ -9,7 +9,7 @@ import hashlib
 from urllib.parse import urlencode
 import json
 import math
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Cookie, Response, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
@@ -17,9 +17,69 @@ import os
 # main.py
 from fastapi import FastAPI
 from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from starlette.responses import HTMLResponse
+
+# File paths for JSON storage
+SELL_PRICES_FILE = "sell_prices.json"
+PROFIT_RATES_FILE = "profit_rates.json"
+
+# Initialize dictionaries
+sell_prices = {}
+profit_rate = {}
+auto_sell = True  # Global variable for auto sell toggle
+
+# JWT secret key (in production, use a secure secret key)
+secretKey = "your-secret-key-here-change-in-production"
+
+def load_dictionaries_from_json():
+    """Load sell_prices and profit_rate from JSON files"""
+    global sell_prices, profit_rate
+    
+    # Load sell_prices
+    if os.path.exists(SELL_PRICES_FILE):
+        try:
+            with open(SELL_PRICES_FILE, 'r') as f:
+                sell_prices = json.load(f)
+            print(f"Loaded sell_prices from {SELL_PRICES_FILE}: {sell_prices}")
+        except Exception as e:
+            print(f"Error loading sell_prices: {e}")
+            sell_prices = {}
+    else:
+        sell_prices = {}
+        print(f"Created new sell_prices dictionary")
+    
+    # Load profit_rate
+    if os.path.exists(PROFIT_RATES_FILE):
+        try:
+            with open(PROFIT_RATES_FILE, 'r') as f:
+                profit_rate = json.load(f)
+            print(f"Loaded profit_rate from {PROFIT_RATES_FILE}: {profit_rate}")
+        except Exception as e:
+            print(f"Error loading profit_rate: {e}")
+            profit_rate = {}
+    else:
+        profit_rate = {}
+        print(f"Created new profit_rate dictionary")
+
+def save_dictionaries_to_json():
+    """Save sell_prices and profit_rate to JSON files"""
+    try:
+        # Save sell_prices
+        with open(SELL_PRICES_FILE, 'w') as f:
+            json.dump(sell_prices, f, indent=2)
+        print(f"Saved sell_prices to {SELL_PRICES_FILE}: {sell_prices}")
+    except Exception as e:
+        print(f"Error saving sell_prices: {e}")
+    
+    try:
+        # Save profit_rate
+        with open(PROFIT_RATES_FILE, 'w') as f:
+            json.dump(profit_rate, f, indent=2)
+        print(f"Saved profit_rate to {PROFIT_RATES_FILE}: {profit_rate}")
+    except Exception as e:
+        print(f"Error saving profit_rate: {e}")
 
 # FastAPI app initialization
 app = FastAPI(
@@ -31,7 +91,7 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Allow all origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -100,15 +160,6 @@ class AddOldOrderRequest(BaseModel):
     volume: float
     remaining_volume: float
     state: str
-
-
-sell_prices = {}
-
-profit_rate = {}
-profit_rate['REI'] = 0.02
-profit_rate['DBR'] = 0.03
-profit_rate['ENA'] = 0.03
-profit_rate['BMT'] = 0.05
 
 
 old_assets = []
@@ -182,6 +233,9 @@ accessKey = ''
 secretKey = ''
 apiUrl = 'https://api.bithumb.com'
 
+sys_username=''
+sys_password=''
+
 pass_path = os.path.dirname(os.path.abspath(__file__)) + '/../pass.txt'
 with open(pass_path, 'r') as f:
     tlines = f.readlines()
@@ -193,6 +247,18 @@ with open(pass_path, 'r') as f:
             accessKey = tlist[2][1:-1]
         elif tlist[0] == 'secretKey':
             secretKey = tlist[2][1:-1]
+
+login_path = os.path.dirname(os.path.abspath(__file__)) + '/../login.txt'
+with open(login_path, 'r') as f:
+    tlines = f.readlines()
+    for t in tlines:
+        if t[-1] == '\n':
+            t = t[:-1]
+        tlist = t.split(' ')
+        if tlist[0] == 'username' and tlist[1] == '=':
+            sys_username = tlist[2][1:-1]
+        elif tlist[0] == 'password':
+            sys_password = tlist[2][1:-1]
 
 # Generate access token
 def get_access_header():
@@ -234,8 +300,8 @@ def delete_order(uuid, ):
         # Call API
         response = requests.delete(apiUrl + '/v1/order', params=param, headers=headers)
         # handle to success or fail
-        print(response.status_code)
-        print(response.json())
+        #print(response.status_code)
+        #print(response.json())
     except Exception as err:
         # handle exception
         print(err)
@@ -268,8 +334,8 @@ def sell_order(market, side, volume, price, ord_type='limit'): # 'bid'-buy 'ask'
         # Call API
         response = requests.post(apiUrl + '/v1/orders', data=json.dumps(requestBody), headers=headers)
         # handle to success or fail
-        print(response.status_code)
-        print(response.json())
+        #print(response.status_code)
+        #print(response.json())
     except Exception as err:
         # handle exception
         print(err)
@@ -308,9 +374,9 @@ def get_current_price(asset):
         asset.current_amount = math.floor(asset.current_price * asset.total_coin)
         asset.profit_loss = math.floor(asset.current_amount - asset.buy_amount)
         asset.profit_rate = (asset.profit_loss / asset.buy_amount)
-        print(asset.profit_rate)
+        #print(asset.profit_rate)
         asset.profit_rate = round(asset.profit_rate, 4)
-        print(asset.profit_rate)
+        #print(asset.profit_rate)
 
 def print_asset(asset):
     try:
@@ -322,7 +388,7 @@ def print_asset(asset):
         s += 'profit_loss={}'.format(asset.profit_loss) + ' '
         s += 'profit_rate={}'.format(asset.profit_rate)
 
-        print(s)
+        #print(s)
     except:
         print(asset)
 
@@ -337,20 +403,36 @@ def get_orders():
 
 def get_sell_price(currency, avg_buy_price):
     exp_sell_price = 0
-    if currency in profit_rate :
-        exp_sell_price = avg_buy_price * (1 + profit_rate[currency])
-    else:
-        if currency in sell_prices:
-            exp_sell_price = sell_prices[currency]
+    if currency in sell_prices:
+        exp_sell_price = sell_prices[currency]
+    if exp_sell_price == 0 : # not defined by price
+        if currency in profit_rate :
+            exp_sell_price = avg_buy_price * (1 + profit_rate[currency])
 
     if exp_sell_price == 0 :
         return 0
 
+    if exp_sell_price < 1:
+        return math.floor(exp_sell_price * 10000) / 10000
+    if exp_sell_price < 10:
+        return math.floor(exp_sell_price * 1000) / 1000
     if exp_sell_price < 100:
         return math.floor(exp_sell_price * 100) / 100
+
     if exp_sell_price < 1000:
         return math.floor(exp_sell_price)
-    return math.floor(exp_sell_price/5) * 5
+
+    if exp_sell_price < 5000:
+        return math.floor(exp_sell_price / 5) * 5
+    if exp_sell_price < 10000:
+        return math.floor(exp_sell_price / 10) * 10
+    if exp_sell_price < 50000:
+        return math.floor(exp_sell_price / 50) * 50
+    if exp_sell_price < 100000:
+        return math.floor(exp_sell_price / 100) * 100
+    if exp_sell_price < 500000:
+        return math.floor(exp_sell_price / 500) * 500
+    return math.floor(exp_sell_price / 1000) * 1000
 
 
 def cancel_order(order):
@@ -401,6 +483,10 @@ def cancel_order_ifnoteq(currency, sell_price, orderlist):
 
 
 def sell_balance(assets, orderdict):
+    global auto_sell
+    if not auto_sell:
+        return 0
+
     cancel_count = 0
     for asset in assets:
         locked = asset.locked
@@ -426,7 +512,7 @@ def print_order(order):
     s += 'volume={}'.format(order.volume) + ' '
     s += 'remaining_volume={}'.format(order.remaining_volume) + ' '
     s += 'locked={}'.format(order.locked)
-    print(s)
+    #print(s)
 
 
 
@@ -477,23 +563,418 @@ def monitor_task():
 
 # 백그라운드 스케줄러 설정
 scheduler = BackgroundScheduler()
-scheduler.add_job(monitor_task, 'interval', seconds=5)  # 매 5초마다 실행
+scheduler.add_job(monitor_task, 'interval', seconds=1.5)  # 매 5초마다 실행
 scheduler.start()
 
 
 # FastAPI Endpoints
 @app.get("/", response_class=HTMLResponse)
-async def root():
-    """Root endpoint"""
-    with open("../index.html", "rt", encoding="utf8") as htmlf:
-        html = htmlf.read()
-        return html
+async def login_page():
+    """Login page endpoint"""
+    return HTMLResponse("""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Login - Asset Management System</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body { 
+                font-family: Arial, sans-serif; 
+                margin: 0; 
+                padding: 0; 
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .login-container { 
+                background: white; 
+                padding: 40px; 
+                border-radius: 10px; 
+                box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+                width: 100%;
+                max-width: 400px;
+            }
+            .header { 
+                text-align: center; 
+                margin-bottom: 30px; 
+            }
+            .header h1 { 
+                color: #333; 
+                margin-bottom: 10px; 
+                font-size: 2rem;
+            }
+            .header p { 
+                color: #666; 
+                margin: 0; 
+            }
+            .form-group { 
+                margin-bottom: 20px; 
+            }
+            .form-group label { 
+                display: block; 
+                margin-bottom: 5px; 
+                color: #555; 
+                font-weight: bold; 
+            }
+            .form-group input { 
+                width: 100%; 
+                padding: 12px; 
+                border: 2px solid #ddd; 
+                border-radius: 5px; 
+                font-size: 16px; 
+                box-sizing: border-box;
+                transition: border-color 0.3s;
+            }
+            .form-group input:focus { 
+                outline: none; 
+                border-color: #667eea; 
+            }
+            .login-btn { 
+                width: 100%; 
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                color: white; 
+                border: none; 
+                padding: 15px; 
+                border-radius: 5px; 
+                cursor: pointer; 
+                font-size: 16px; 
+                font-weight: bold;
+                transition: transform 0.2s;
+            }
+            .login-btn:hover { 
+                transform: translateY(-2px); 
+            }
+            .error-message { 
+                color: #e74c3c; 
+                text-align: center; 
+                margin-top: 10px; 
+                display: none; 
+            }
+            .success-message { 
+                color: #27ae60; 
+                text-align: center; 
+                margin-top: 10px; 
+                display: none; 
+            }
+        </style>
+    </head>
+    <body>
+        <div class="login-container">
+            <div class="header">
+                <h1>💰 RichCoin</h1>
+                <p>Asset Management System</p>
+            </div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required placeholder="Enter your username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="Enter your password">
+                </div>
+                
+                <button type="submit" class="login-btn">Login</button>
+            </form>
+            
+            <div id="errorMessage" class="error-message"></div>
+            <div id="successMessage" class="success-message"></div>
+        </div>
+        
+        <script>
+            document.getElementById('loginForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const errorMessage = document.getElementById('errorMessage');
+                const successMessage = document.getElementById('successMessage');
+                
+                // Hide previous messages
+                errorMessage.style.display = 'none';
+                successMessage.style.display = 'none';
+                
+                try {
+                    // Create form data
+                    const formData = new FormData();
+                    formData.append('username', username);
+                    formData.append('password', password);
+                    
+                    // Send login request
+                    const response = await fetch('/login', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        successMessage.textContent = 'Login successful! Redirecting...';
+                        successMessage.style.display = 'block';
+                        
+                        // Redirect to manage page after 1 second
+                        setTimeout(() => {
+                            window.location.href = '/manage';
+                        }, 1000);
+                    } else {
+                        const errorData = await response.json();
+                        errorMessage.textContent = errorData.detail || 'Login failed. Try admin/password';
+                        errorMessage.style.display = 'block';
+                    }
+                } catch (error) {
+                    errorMessage.textContent = 'Network error. Please try again.';
+                    errorMessage.style.display = 'block';
+                }
+            });
+        </script>
+    </body>
+    </html>
+    """)
+
+
+@app.post("/login")
+async def login(username: str = Form(...), password: str = Form(...)):
+    if sys_username == '' or sys_password == '':
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+    """Login endpoint to validate credentials and set a cookie"""
+    if username == sys_username and password == sys_password:
+        # Generate a JWT token with 7 days expiration for persistent login
+        payload = {
+            "username": username,
+            "exp": datetime.utcnow() + timedelta(days=7) # Token expires in 7 days
+        }
+        token = jwt.encode(payload, secretKey, algorithm="HS256")
+        
+        # Set the token as a cookie with 7 days expiration
+        response = Response(content=f"Login successful! Token: {token}")
+        response.set_cookie(
+            key="token", 
+            value=token, 
+            httponly=True, 
+            max_age=7*24*60*60,  # 7 days in seconds
+            path="/",
+            secure=False,  # Set to True in production with HTTPS
+            samesite="lax"
+        )
+        return response
+    else:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+
+@app.post("/refresh-token")
+async def refresh_token(token: str = Cookie(None)):
+    """Refresh token endpoint to extend session without requiring re-login"""
+    if not token:
+        raise HTTPException(status_code=401, detail="No token provided")
+    
+    try:
+        # Decode the current token
+        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        username = payload.get("username")
+        
+        if username != sys_username:
+            raise HTTPException(status_code=403, detail="Unauthorized user")
+        
+        # Create a new token with extended expiration
+        new_payload = {
+            "username": username,
+            "exp": datetime.utcnow() + timedelta(days=7) # Extend for another 7 days
+        }
+        new_token = jwt.encode(new_payload, secretKey, algorithm="HS256")
+        
+        # Set the new token as a cookie
+        response = Response(content='{"success": true, "message": "Token refreshed successfully"}')
+        response.headers['Content-Type'] = 'application/json'
+        response.set_cookie(
+            key="token", 
+            value=new_token, 
+            httponly=True, 
+            max_age=7*24*60*60,  # 7 days in seconds
+            path="/",
+            secure=False,  # Set to True in production with HTTPS
+            samesite="lax"
+        )
+        return response
+        
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+@app.post("/logout")
+async def logout():
+    """Logout endpoint to clear authentication cookie"""
+    response = Response(content='{"success": true, "message": "Logged out successfully"}')
+    response.headers['Content-Type'] = 'application/json'
+    # Clear the authentication cookie by setting it to expire and empty value
+    response.set_cookie(
+        key="token", 
+        value="", 
+        expires=0, 
+        httponly=True, 
+        path="/",
+        secure=False,  # Set to True in production with HTTPS
+        samesite="lax"
+    )
+    return response
+
+
+@app.get("/manage", response_class=HTMLResponse)
+async def root(token: str = Cookie(None)):
+    """Root endpoint that returns the HTML dashboard"""
+    if not token or token.strip() == "":
+        # Redirect to login page if no token or empty token
+        return HTMLResponse("""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Authentication Required</title>
+            <meta charset="utf-8">
+            <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                .error { color: #e74c3c; font-size: 1.2em; margin: 20px 0; }
+                .login-link { background: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
+            </style>
+        </head>
+        <body>
+            <h1>🔒 Authentication Required</h1>
+            <div class="error">You need to log in to access the dashboard.</div>
+            <a href="/" class="login-link">Go to Login Page</a>
+        </body>
+        </html>
+        """)
+    
+    try:
+        # Validate token is not empty and properly formatted
+        if not token or len(token.strip()) < 10:  # Basic length check for JWT
+            raise jwt.InvalidTokenError("Token too short or empty")
+            
+        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        username = payload.get("username")
+        
+        if not username or username != sys_username:
+            return HTMLResponse("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Access Denied</title>
+                <meta charset="utf-8">
+                <style>
+                    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                    .error { color: #e74c3c; font-size: 1.2em; margin: 20px 0; }
+                    .login-link { background: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
+                </style>
+            </head>
+            <body>
+                <h1>🚫 Access Denied</h1>
+                <div class="error">You are not authorized to access this dashboard.</div>
+                <a href="/" class="login-link">Go to Login Page</a>
+            </body>
+            </html>
+            """)
+
+        # User is authenticated, read and serve index.html
+        try:
+            index_path = os.path.dirname(os.path.abspath(__file__)) + '/../index.html'
+            with open(index_path, 'rt', encoding='utf8') as htmlf:
+                html_content = htmlf.read()
+                return HTMLResponse(html_content)
+        except FileNotFoundError:
+            return HTMLResponse("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>File Not Found</title>
+                <meta charset="utf-8">
+                <style>
+                    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                    .error { color: #e74c3c; font-size: 1.2em; margin: 20px 0; }
+                </style>
+            </head>
+            <body>
+                <h1>📄 File Not Found</h1>
+                <div class="error">index.html file not found. Please check the file path.</div>
+            </body>
+            </html>
+            """)
+        except Exception as e:
+            return HTMLResponse(f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Error</title>
+                <meta charset="utf-8">
+                <style>
+                    body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; }}
+                    .error {{ color: #e74c3c; font-size: 1.2em; margin: 20px 0; }}
+                </style>
+            </head>
+            <body>
+                <h1>❌ Error</h1>
+                <div class="error">Error reading index.html: {str(e)}</div>
+            </body>
+            </html>
+            """)
+            
+    except jwt.ExpiredSignatureError:
+        return HTMLResponse("""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Session Expired</title>
+            <meta charset="utf-8">
+            <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                .error { color: #e74c3c; font-size: 1.2em; margin: 20px 0; }
+                .login-link { background: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
+            </style>
+        </head>
+        <body>
+            <h1>⏰ Session Expired</h1>
+            <div class="error">Your login session has expired. Please log in again.</div>
+            <a href="/" class="login-link">Go to Login Page</a>
+        </body>
+        </html>
+        """)
+    except jwt.InvalidTokenError:
+        return HTMLResponse("""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Invalid Session</title>
+            <meta charset="utf-8">
+            <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                .error { color: #e74c3c; font-size: 1.2em; margin: 20px 0; }
+                .login-link { background: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
+            </style>
+        </head>
+        <body>
+            <h1>🔐 Invalid Session</h1>
+            <div class="error">Your login session is invalid. Please log in again.</div>
+            <a href="/" class="login-link">Go to Login Page</a>
+        </body>
+        </html>
+        """)
 
 
 @app.get("/assets", response_model=list[AssetResponse])
-async def get_assets_api():
+async def get_assets_api(token: str = Cookie(None)):
     """Get all assets"""
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
     try:
+        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        username = payload.get("username")
+        if username != "admin":
+            raise HTTPException(status_code=403, detail="Unauthorized user")
+
         return [
             AssetResponse(
                 currency=asset.currency,
@@ -508,14 +989,24 @@ async def get_assets_api():
                 profit_rate=asset.profit_rate
             ) for asset in old_assets
         ]
-    except Exception as e:
-        return {"error": str(e)}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 @app.get("/orders", response_model=list[OrderResponse])
-async def get_orders_api():
+async def get_orders_api(token: str = Cookie(None)):
     """Get all orders"""
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
     try:
+        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        username = payload.get("username")
+        if username != "admin":
+            raise HTTPException(status_code=403, detail="Unauthorized user")
+
         return [
             OrderResponse(
                 market=order.market,
@@ -530,14 +1021,24 @@ async def get_orders_api():
                 locked=order.locked
             ) for order in old_orders
         ]
-    except Exception as e:
-        return {"error": str(e)}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 @app.post("/sell-order")
-async def create_sell_order(request: SellOrderRequest):
+async def create_sell_order(request: SellOrderRequest, token: str = Cookie(None)):
     """Create a sell order"""
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
     try:
+        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        username = payload.get("username")
+        if username != "admin":
+            raise HTTPException(status_code=403, detail="Unauthorized user")
+
         sell_order(
             market=request.market,
             side=request.side,
@@ -546,14 +1047,24 @@ async def create_sell_order(request: SellOrderRequest):
             ord_type=request.ord_type
         )
         return {"message": "Sell order created successfully"}
-    except Exception as e:
-        return {"error": str(e)}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 @app.post("/cancel-order")
-async def async_cancel_order(request: dict):
+async def async_cancel_order(request: dict, token: str = Cookie(None)):
     """Cancel an order by UUID"""
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
     try:
+        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        username = payload.get("username")
+        if username != "admin":
+            raise HTTPException(status_code=403, detail="Unauthorized user")
+
         uuid = request.get("uuid")
         if not uuid:
             return {"success": False, "error": "Missing UUID field"}
@@ -570,24 +1081,44 @@ async def async_cancel_order(request: dict):
             "uuid": uuid,
             "message": f"Order {uuid} cancelled successfully"
         }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 @app.get("/sell-price/{currency}")
-async def get_sell_price_api(currency: str, avg_buy_price: float):
+async def get_sell_price_api(currency: str, avg_buy_price: float, token: str = Cookie(None)):
     """Get sell price for a currency"""
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
     try:
+        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        username = payload.get("username")
+        if username != "admin":
+            raise HTTPException(status_code=403, detail="Unauthorized user")
+
         price = get_sell_price(currency, avg_buy_price)
         return {"currency": currency, "sell_price": price}
-    except Exception as e:
-        return {"error": str(e)}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 @app.post("/submit-old-assets")
-async def submit_old_assets(request: SubmitOldAssetsRequest):
+async def submit_old_assets(request: SubmitOldAssetsRequest, token: str = Cookie(None)):
     """Submit multiple old asset updates at once"""
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
     try:
+        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        username = payload.get("username")
+        if username != "admin":
+            raise HTTPException(status_code=403, detail="Unauthorized user")
+
         for update in request.updates:
             currency = update.get("currency")
             sell_price = update.get("sell_price")
@@ -608,47 +1139,146 @@ async def submit_old_assets(request: SubmitOldAssetsRequest):
                 # Store the profit rate (convert percentage to decimal)
                 profit_rate[currency] = profit_rate_val / 100.0
         
+        # Save changes to JSON files
+        save_dictionaries_to_json()
+        
         return {"success": True, "message": "Old assets updated successfully"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 @app.post("/add-old-asset")
-async def add_old_asset(request: AddOldAssetRequest):
+async def add_old_asset(request: AddOldAssetRequest, token: str = Cookie(None)):
     """Add a new old asset to the list"""
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
     try:
+        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        username = payload.get("username")
+        if username != "admin":
+            raise HTTPException(status_code=403, detail="Unauthorized user")
+
         old_assets.append(OneAsset(request.dict()))
         return {"message": "Old asset added successfully"}
-    except Exception as e:
-        return {"error": str(e)}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 @app.post("/add-old-order")
-async def add_old_order(request: AddOldOrderRequest):
+async def add_old_order(request: AddOldOrderRequest, token: str = Cookie(None)):
     """Add a new old order to the list"""
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
     try:
+        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        username = payload.get("username")
+        if username != "admin":
+            raise HTTPException(status_code=403, detail="Unauthorized user")
+
         old_orders.append(OneOrder(request.dict()))
         return {"message": "Old order added successfully"}
-    except Exception as e:
-        return {"error": str(e)}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 @app.get("/sell-prices")
-async def get_sell_prices():
+async def get_sell_prices(token: str = Cookie(None)):
     """Get all sell prices dictionary"""
-    return sell_prices
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        username = payload.get("username")
+        if username != "admin":
+            raise HTTPException(status_code=403, detail="Unauthorized user")
+
+        return sell_prices
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 @app.get("/profit-rates")
-async def get_profit_rates():
+async def get_profit_rates(token: str = Cookie(None)):
     """Get all profit rates dictionary"""
-    return {k: v * 100 for k, v in profit_rate.items()}  # Convert back to percentage
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        username = payload.get("username")
+        if username != "admin":
+            raise HTTPException(status_code=403, detail="Unauthorized user")
 
+        return {k: v * 100 for k, v in profit_rate.items()}  # Convert back to percentage
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+@app.get("/auto-sell")
+async def get_auto_sell(token: str = Cookie(None)):
+    """Get the current auto_sell status"""
+    if not token:
+        raise HTTPException(status_code=401, detail="No token provided")
+    
+    try:
+        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        username = payload.get("username")
+        if username != sys_username:
+            raise HTTPException(status_code=403, detail="Unauthorized user")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    return {"auto_sell": auto_sell}
+
+@app.post("/toggle-auto-sell")
+async def toggle_auto_sell(token: str = Cookie(None)):
+    """Toggle the auto_sell status"""
+    global auto_sell
+    
+    if not token:
+        raise HTTPException(status_code=401, detail="No token provided")
+    
+    try:
+        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        username = payload.get("username")
+        if username != sys_username:
+            raise HTTPException(status_code=403, detail="Unauthorized user")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    auto_sell = not auto_sell
+    print(f"Auto sell toggled to: {auto_sell}")
+    return {"auto_sell": auto_sell, "success": True}
 
 @app.post("/update-sell-price")
-async def update_sell_price(request: dict):
+async def update_sell_price(request: dict, token: str = Cookie(None)):
     """Update sell price and profit rate for a currency"""
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
     try:
+        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        username = payload.get("username")
+        if username != "admin":
+            raise HTTPException(status_code=403, detail="Unauthorized user")
+
         currency = request.get("currency")
         price = request.get("price")
         rate = request.get("rate")
@@ -670,6 +1300,10 @@ async def update_sell_price(request: dict):
             # Remove from dictionary if rate is 0
             del profit_rate[currency]
         
+        # Save changes to JSON files
+        save_dictionaries_to_json()
+
+        print("currency={}, price={}, rate={}".format(currency, price, rate))
         return {
             "success": True,
             "currency": currency,
@@ -677,9 +1311,52 @@ async def update_sell_price(request: dict):
             "rate": rate,
             "message": f"Updated {currency} with sell price {price} and profit rate {rate}%"
         }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+@app.post("/delete-sell-data")
+async def delete_sell_data(request: dict, token: str = Cookie(None)):
+    """Delete sell price and profit rate for a currency"""
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        username = payload.get("username")
+        if username != "admin":
+            raise HTTPException(status_code=403, detail="Unauthorized user")
+
+        currency = request.get("currency")
+
+        if not currency:
+            return {"success": False, "error": "Missing currency field"}
+
+        # Remove from sell_prices dictionary
+        if currency in sell_prices:
+            del sell_prices[currency]
+        
+        # Remove from profit_rate dictionary
+        if currency in profit_rate:
+            del profit_rate[currency]
+        
+        # Save changes to JSON files
+        save_dictionaries_to_json()
+
+        return {
+            "success": True,
+            "currency": currency,
+            "message": f"Deleted sell data for {currency}"
+        }
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8003)
+    # Load dictionaries from JSON files at startup
+    load_dictionaries_from_json()
+    uvicorn.run(app, host="0.0.0.0", port=8003, log_level="error")
