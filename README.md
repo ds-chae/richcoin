@@ -1,31 +1,46 @@
-# PDF Chat with Gemini AI
+# SojuCoin - Asset Management Dashboard
 
-PDF 문서를 업로드하고 Gemini AI와 대화할 수 있는 웹 애플리케이션입니다.
+비트코인 및 암호화폐 자산 관리를 위한 웹 대시보드입니다. Bithumb API를 활용하여 실시간 가격 정보, 주문 관리, 자동 매도 설정 등의 기능을 제공합니다.
 
 ## 🚀 주요 기능
 
-- **PDF 업로드**: 드래그 앤 드롭 또는 클릭으로 PDF 파일 업로드
-- **AI 채팅**: 업로드된 PDF 내용에 대해 Gemini AI와 실시간 대화
-- **반응형 디자인**: 모바일과 데스크톱에서 모두 사용 가능
-- **세션 관리**: 업로드된 PDF 정보를 세션에 저장하여 지속적인 대화 가능
+### 📊 자산 관리
+- **실시간 자산 현황**: 보유 코인 수량, 평균 매수가, 현재가, 수익률 표시
+- **자동 새로고침**: 5초마다 자동으로 데이터 업데이트
+- **모바일 최적화**: 반응형 디자인으로 모바일에서도 편리한 사용
+
+### 💰 주문 관리
+- **실시간 주문 현황**: 미체결 주문 목록 및 상태 확인
+- **주문 취소**: 개별 주문 취소 기능
+- **주문 내역**: 매수/매도 주문 히스토리
+
+### 📈 차트 분석
+- **실시간 차트**: 5분, 15분, 일봉 차트 제공
+- **거래량 분석**: 가격 차트와 함께 거래량 표시
+- **다양한 코인 지원**: 20여개 주요 암호화폐 지원
+
+### ⚙️ 자동 매도 설정
+- **목표가 설정**: 코인별 매도 목표가 설정
+- **수익률 관리**: 목표 수익률 기반 자동 매도
+- **실시간 모니터링**: 설정된 목표가 달성 시 알림
 
 ## 📋 요구사항
 
 - Python 3.7 이상
-- Google Gemini API 키
+- Anaconda 환경 (pytorch3d 환경 권장)
+- Bithumb API 접근 권한
 
 ## 🛠️ 설치 및 설정
 
 ### 1. 저장소 클론
 ```bash
 git clone <repository-url>
-cd pdf-chat-app
+cd richcoin
 ```
 
-### 2. 가상환경 생성 및 활성화
+### 2. Anaconda 환경 활성화
 ```bash
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+conda activate pytorch3d
 ```
 
 ### 3. 의존성 설치
@@ -33,90 +48,120 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 4. Gemini API 키 설정
-
-1. [Google AI Studio](https://makersuite.google.com/app/apikey)에서 API 키를 발급받으세요.
-2. `pdf_chat_app.py` 파일에서 다음 줄을 수정하세요:
-```python
-GOOGLE_API_KEY = 'your-gemini-api-key-here'  # 실제 API 키로 변경
-```
-
-### 5. 애플리케이션 실행
+### 4. 백엔드 서버 실행
 ```bash
-python pdf_chat_app.py
+cd backend
+python listasset.py
 ```
 
-브라우저에서 `http://localhost:5000`으로 접속하세요.
+### 5. 웹 대시보드 접속
+브라우저에서 `http://localhost:8003`으로 접속하세요.
 
 ## 📖 사용법
 
-### 1. PDF 업로드
-- 왼쪽 패널의 업로드 영역을 클릭하거나 PDF 파일을 드래그하여 업로드
-- 지원 형식: PDF 파일만
+### 1. 자산 현황 확인
+- 메인 대시보드에서 보유 코인 현황 확인
+- 실시간 가격 정보 및 수익률 모니터링
 
-### 2. AI와 대화
-- PDF 업로드 후 오른쪽 채팅 패널에서 질문 입력
-- Enter 키 또는 전송 버튼으로 질문 전송
-- AI가 PDF 내용을 바탕으로 답변 제공
+### 2. 주문 관리
+- 미체결 주문 목록에서 주문 상태 확인
+- 필요시 개별 주문 취소
 
-### 3. 세션 관리
-- "세션 초기화" 버튼으로 현재 PDF 정보 삭제
-- 새로운 PDF 업로드 가능
+### 3. 차트 분석
+- "Chart" 버튼을 클릭하여 차트 페이지 이동
+- 원하는 코인과 시간대(5분/15분/일봉) 선택
+- 가격 추이 및 거래량 분석
+
+### 4. 자동 매도 설정
+- 코인별 매도 목표가 설정
+- 수익률 기반 자동 매도 활성화/비활성화
 
 ## 🏗️ 프로젝트 구조
 
 ```
-pdf-chat-app/
-├── pdf_chat_app.py      # Flask 애플리케이션 메인 파일
+richcoin/
+├── backend/
+│   ├── listasset.py          # FastAPI 백엔드 서버
+│   ├── sell_prices.json      # 매도가 설정 데이터
+│   └── profit_rates.json     # 수익률 설정 데이터
+├── mycoin/                   # Django 프로젝트 (추가 기능)
 ├── templates/
-│   └── index.html       # 웹 인터페이스 템플릿
-├── requirements.txt     # Python 의존성 목록
-└── README.md           # 프로젝트 문서
+│   └── index.html           # 메인 대시보드 템플릿
+├── chart.html               # 차트 페이지
+├── index.html               # 메인 대시보드
+├── requirements.txt         # Python 의존성 목록
+└── README.md               # 프로젝트 문서
 ```
 
 ## 🔧 주요 기술 스택
 
-- **Backend**: Flask (Python)
-- **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
-- **PDF 처리**: PyPDF2
-- **AI**: Google Gemini API
-- **UI/UX**: 반응형 디자인, 드래그 앤 드롭
+### Backend
+- **FastAPI**: 고성능 웹 API 프레임워크
+- **Bithumb API**: 실시간 암호화폐 데이터
+- **JWT**: 사용자 인증 및 세션 관리
+- **APScheduler**: 자동 새로고침 스케줄링
+
+### Frontend
+- **HTML5/CSS3**: 반응형 웹 디자인
+- **JavaScript (Vanilla)**: 동적 UI 및 API 통신
+- **Chart.js**: 실시간 차트 렌더링
+- **Flexbox**: 모바일 최적화 레이아웃
+
+## 📊 API 엔드포인트
+
+### 자산 관리
+- `GET /assets` - 보유 자산 현황
+- `GET /orders` - 미체결 주문 목록
+- `POST /cancel-order` - 주문 취소
+
+### 차트 데이터
+- `GET /chart-data/days/{currency}` - 일봉 데이터
+- `GET /chart-data/minutes/{currency}` - 분봉 데이터
+- `GET /coinlist` - 지원 코인 목록
+
+### 자동 매도
+- `GET /auto-sell` - 자동 매도 상태
+- `POST /toggle-auto-sell` - 자동 매도 토글
+- `POST /update-sell-price` - 매도가 업데이트
 
 ## 🔒 보안 고려사항
 
-- 실제 배포 시 `app.secret_key`를 안전한 값으로 변경하세요
-- API 키는 환경 변수로 관리하는 것을 권장합니다
-- 파일 업로드 크기 제한을 설정하는 것을 권장합니다
+- JWT 토큰 기반 인증 시스템
+- CORS 설정으로 안전한 API 통신
+- 세션 기반 사용자 상태 관리
+- API 키 환경 변수 관리 권장
 
 ## 🚀 배포
 
-### 로컬 개발 서버
+### 로컬 개발
 ```bash
-python pdf_chat_app.py
+conda activate pytorch3d
+cd backend
+python listasset.py
 ```
 
 ### 프로덕션 배포
 ```bash
 # Gunicorn 사용 예시
 pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:5000 pdf_chat_app:app
+gunicorn -w 4 -b 0.0.0.0:8003 listasset:app
 ```
 
 ## 🐛 문제 해결
 
 ### 일반적인 문제들
 
-1. **API 키 오류**
-   - Gemini API 키가 올바르게 설정되었는지 확인
-   - API 키의 권한과 할당량 확인
+1. **API 연결 오류**
+   - Bithumb API 서버 상태 확인
+   - 네트워크 연결 상태 확인
 
-2. **PDF 읽기 오류**
-   - PDF 파일이 손상되지 않았는지 확인
-   - 텍스트가 포함된 PDF인지 확인 (이미지만 있는 PDF는 처리 불가)
+2. **차트 로딩 실패**
+   - 백엔드 서버 실행 상태 확인
+   - 브라우저 콘솔에서 오류 메시지 확인
 
-3. **업로드 실패**
-   - 파일 크기가 너무 큰지 확인
-   - PDF 파일 형식인지 확인
+3. **자동 새로고침 중단**
+   - 브라우저 탭이 활성 상태인지 확인
+   - 네트워크 연결 상태 확인
 
 ## 📝 라이선스
 
@@ -134,6 +179,6 @@ gunicorn -w 4 -b 0.0.0.0:5000 pdf_chat_app:app
 
 문제가 발생하거나 질문이 있으시면 이슈를 생성해주세요.
 
-using bithumb API.
+---
 
-run listasset.py
+**SojuCoin Dashboard** - 암호화폐 자산 관리의 새로운 경험을 제공합니다.
