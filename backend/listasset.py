@@ -9,13 +9,12 @@ import hashlib
 from urllib.parse import urlencode
 import json
 import math
-from fastapi import FastAPI, HTTPException, Cookie, Response, Form
+from fastapi import FastAPI, HTTPException, Cookie, Response, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 import os
 # main.py
-from fastapi import FastAPI
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 
@@ -566,173 +565,191 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(monitor_task, 'interval', seconds=1.5)  # 매 5초마다 실행
 scheduler.start()
 
+def remove_bracing_tags(html_content, str_to_find, open_tag, close_tag) : # 'class="sell-inputs"', '<div', '</div>'
+    index_position = html_content.find(str_to_find)
+    if index_position != -1 :
+        si = index_position
+        while si > 0 :
+            if html_content[si:si+len(open_tag)] == open_tag :
+                ei = si + 4
+                while ei < len(html_content):
+                    if html_content[ei:ei+len(close_tag)] == close_tag:
+                        s0 = html_content[:si]
+                        s1 = html_content[ei+len(close_tag)+1:]
+                        html_content = s0 + s1
+                        break
+                    ei += 1
+                break
+            si = si - 1
+    else:
+        print('substring {} not found.'.format(str_to_find))
+
+    return html_content
+
 
 # FastAPI Endpoints
 @app.get("/", response_class=HTMLResponse)
-async def login_page():
-    """Login page endpoint"""
-    return HTMLResponse("""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Login - Asset Management System</title>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-            body { 
-                font-family: Arial, sans-serif; 
-                margin: 0; 
-                padding: 0; 
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                height: 100vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            .login-container { 
-                background: white; 
-                padding: 40px; 
-                border-radius: 10px; 
-                box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-                width: 100%;
-                max-width: 400px;
-            }
-            .header { 
-                text-align: center; 
-                margin-bottom: 30px; 
-            }
-            .header h1 { 
-                color: #333; 
-                margin-bottom: 10px; 
-                font-size: 2rem;
-            }
-            .header p { 
-                color: #666; 
-                margin: 0; 
-            }
-            .form-group { 
-                margin-bottom: 20px; 
-            }
-            .form-group label { 
-                display: block; 
-                margin-bottom: 5px; 
-                color: #555; 
-                font-weight: bold; 
-            }
-            .form-group input { 
-                width: 100%; 
-                padding: 12px; 
-                border: 2px solid #ddd; 
-                border-radius: 5px; 
-                font-size: 16px; 
-                box-sizing: border-box;
-                transition: border-color 0.3s;
-            }
-            .form-group input:focus { 
-                outline: none; 
-                border-color: #667eea; 
-            }
-            .login-btn { 
-                width: 100%; 
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                color: white; 
-                border: none; 
-                padding: 15px; 
-                border-radius: 5px; 
-                cursor: pointer; 
-                font-size: 16px; 
-                font-weight: bold;
-                transition: transform 0.2s;
-            }
-            .login-btn:hover { 
-                transform: translateY(-2px); 
-            }
-            .error-message { 
-                color: #e74c3c; 
-                text-align: center; 
-                margin-top: 10px; 
-                display: none; 
-            }
-            .success-message { 
-                color: #27ae60; 
-                text-align: center; 
-                margin-top: 10px; 
-                display: none; 
-            }
-        </style>
-    </head>
-    <body>
-        <div class="login-container">
-            <div class="header">
-                <h1>💰 RichCoin</h1>
-                <p>Asset Management System</p>
-            </div>
-            
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required placeholder="Enter your username">
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required placeholder="Enter your password">
-                </div>
-                
-                <button type="submit" class="login-btn">Login</button>
-            </form>
-            
-            <div id="errorMessage" class="error-message"></div>
-            <div id="successMessage" class="success-message"></div>
-        </div>
+async def root_page(request: Request, token: str = Cookie(None)):
+    """Root endpoint that returns the HTML dashboard with login button if not authenticated - ROOT ENDPOINT"""
+    try:
+        # Check authentication status
+        auth_status = check_auth_status(token)
         
-        <script>
-            document.getElementById('loginForm').addEventListener('submit', async function(e) {
-                e.preventDefault();
+        # Read index.html
+        index_path = os.path.dirname(os.path.abspath(__file__)) + '/../index.html'
+        with open(index_path, 'rt', encoding='utf8') as htmlf:
+            html_content = htmlf.read()
+            
+            # Check if request is coming through nginx proxy
+            nginx_header = request.headers.get('x-proxy-by', '')
+            if 'Nginx' in nginx_header:
+                # Remove port 8003 from API base URL when coming through nginx
+                html_content = html_content.replace(':8003', '')
+            
+            # If not authenticated, add login button and hide logout button
+            if not auth_status["authenticated"]:
+                # Add login button to header
+                html_content = html_content.replace(
+                    '<button onclick="logout()" class="logout-btn">🚪 Logout</button>',
+                    '<button onclick="showLoginModal()" class="login-btn" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold;">🔑 Login</button>'
+                )
                 
-                const username = document.getElementById('username').value;
-                const password = document.getElementById('password').value;
-                const errorMessage = document.getElementById('errorMessage');
-                const successMessage = document.getElementById('successMessage');
+                # Remove delete buttons from sell table (price section)
+                html_content = remove_bracing_tags(html_content, 'onclick="deleteSellData(', '<button', '</button>')
+
+                # Remove auto button from sell table
+                html_content = remove_bracing_tags(html_content, '"toggleSellAuto()"', '<button', '</button>')
+
+                # Remove update button and input fields from sell table
+                html_content = remove_bracing_tags(html_content, 'class="sell-inputs"', '<div', '</div>')
+
+                # Remove cancel buttons from orders table
+                html_content = remove_bracing_tags(html_content, 'onclick="cancelOrder', '<button', '</button>')
+
+                # Add login modal HTML before closing body tag
+                login_modal = '''
+                <div id="loginModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+                    <div style="background-color: white; margin: 15% auto; padding: 20px; border-radius: 10px; width: 80%; max-width: 400px;">
+                        <h2 style="text-align: center; margin-bottom: 20px;">🍶 SojuCoin Login</h2>
+                        <form id="loginForm">
+                            <div style="margin-bottom: 15px;">
+                                <label for="username" style="display: block; margin-bottom: 5px; font-weight: bold;">Username:</label>
+                                <input type="text" id="username" name="username" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                            </div>
+                            <div style="margin-bottom: 20px;">
+                                <label for="password" style="display: block; margin-bottom: 5px; font-weight: bold;">Password:</label>
+                                <input type="password" id="password" name="password" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                            </div>
+                            <div style="text-align: center;">
+                                <button type="submit" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-right: 10px;">Login</button>
+                                <button type="button" onclick="hideLoginModal()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Cancel</button>
+                            </div>
+                        </form>
+                        <div id="loginMessage" style="margin-top: 15px; text-align: center; display: none;"></div>
+                    </div>
+                </div>
+                '''
                 
-                // Hide previous messages
-                errorMessage.style.display = 'none';
-                successMessage.style.display = 'none';
-                
-                try {
-                    // Create form data
-                    const formData = new FormData();
-                    formData.append('username', username);
-                    formData.append('password', password);
+                # Add login modal JavaScript before closing body tag
+                login_script = '''
+                <script>
+                    function showLoginModal() {
+                        document.getElementById('loginModal').style.display = 'block';
+                    }
                     
-                    // Send login request
-                    const response = await fetch('/login', {
-                        method: 'POST',
-                        body: formData
+                    function hideLoginModal() {
+                        document.getElementById('loginModal').style.display = 'none';
+                        document.getElementById('loginMessage').style.display = 'none';
+                    }
+                    
+                    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+                        e.preventDefault();
+                        
+                        const username = document.getElementById('username').value;
+                        const password = document.getElementById('password').value;
+                        const messageDiv = document.getElementById('loginMessage');
+                        
+                        try {
+                            const formData = new FormData();
+                            formData.append('username', username);
+                            formData.append('password', password);
+                            
+                            const response = await fetch('/login', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            
+                            if (response.ok) {
+                                messageDiv.textContent = 'Login successful! Refreshing page...';
+                                messageDiv.style.color = '#28a745';
+                                messageDiv.style.display = 'block';
+                                
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
+                            } else {
+                                const errorData = await response.json();
+                                messageDiv.textContent = errorData.detail || 'Login failed';
+                                messageDiv.style.color = '#dc3545';
+                                messageDiv.style.display = 'block';
+                            }
+                        } catch (error) {
+                            messageDiv.textContent = 'Network error. Please try again.';
+                            messageDiv.style.color = '#dc3545';
+                            messageDiv.style.display = 'block';
+                        }
                     });
                     
-                    if (response.ok) {
-                        successMessage.textContent = 'Login successful! Redirecting...';
-                        successMessage.style.display = 'block';
-                        
-                        // Redirect to manage page after 1 second
-                        setTimeout(() => {
-                            window.location.href = '/manage';
-                        }, 1000);
-                    } else {
-                        const errorData = await response.json();
-                        errorMessage.textContent = errorData.detail || 'Login failed. Try admin/password';
-                        errorMessage.style.display = 'block';
+                    // Close modal when clicking outside
+                    window.onclick = function(event) {
+                        const modal = document.getElementById('loginModal');
+                        if (event.target === modal) {
+                            hideLoginModal();
+                        }
                     }
-                } catch (error) {
-                    errorMessage.textContent = 'Network error. Please try again.';
-                    errorMessage.style.display = 'block';
-                }
-            });
-        </script>
-    </body>
-    </html>
-    """)
+                </script>
+                '''
+                
+                # Insert modal and script before closing body tag
+                html_content = html_content.replace('</body>', login_modal + login_script + '</body>')
+            
+            return HTMLResponse(html_content)
+    except FileNotFoundError:
+        return HTMLResponse("""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>File Not Found</title>
+            <meta charset="utf-8">
+            <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                .error { color: #e74c3c; font-size: 1.2em; margin: 20px 0; }
+            </style>
+        </head>
+        <body>
+            <h1>📄 File Not Found</h1>
+            <div class="error">index.html file not found. Please check the file path.</div>
+        </body>
+        </html>
+        """)
+    except Exception as e:
+        return HTMLResponse(f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Error</title>
+            <meta charset="utf-8">
+            <style>
+                body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; }}
+                .error {{ color: #e74c3c; font-size: 1.2em; margin: 20px 0; }}
+            </style>
+        </head>
+        <body>
+            <h1>❌ Error</h1>
+            <div class="error">Error reading index.html: {str(e)}</div>
+        </body>
+        </html>
+        """)
 
 
 @app.post("/login")
@@ -824,207 +841,74 @@ async def logout():
     return response
 
 
-@app.get("/manage", response_class=HTMLResponse)
-async def root(token: str = Cookie(None)):
-    """Root endpoint that returns the HTML dashboard"""
+def check_auth_status(token: str = None) -> dict:
+    """Check authentication status and return user info"""
     if not token or token.strip() == "":
-        # Redirect to login page if no token or empty token
-        return HTMLResponse("""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Authentication Required</title>
-            <meta charset="utf-8">
-            <style>
-                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-                .error { color: #e74c3c; font-size: 1.2em; margin: 20px 0; }
-                .login-link { background: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
-            </style>
-        </head>
-        <body>
-            <h1>🔒 Authentication Required</h1>
-            <div class="error">You need to log in to access the dashboard.</div>
-            <a href="/" class="login-link">Go to Login Page</a>
-        </body>
-        </html>
-        """)
+        return {"authenticated": False, "username": None}
     
     try:
-        # Validate token is not empty and properly formatted
-        if not token or len(token.strip()) < 10:  # Basic length check for JWT
-            raise jwt.InvalidTokenError("Token too short or empty")
+        if len(token.strip()) < 10:  # Basic length check for JWT
+            return {"authenticated": False, "username": None}
             
         payload = jwt.decode(token, secretKey, algorithms=["HS256"])
         username = payload.get("username")
         
-        if not username or username != sys_username:
-            return HTMLResponse("""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Access Denied</title>
-                <meta charset="utf-8">
-                <style>
-                    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-                    .error { color: #e74c3c; font-size: 1.2em; margin: 20px 0; }
-                    .login-link { background: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
-                </style>
-            </head>
-            <body>
-                <h1>🚫 Access Denied</h1>
-                <div class="error">You are not authorized to access this dashboard.</div>
-                <a href="/" class="login-link">Go to Login Page</a>
-            </body>
-            </html>
-            """)
-
-        # User is authenticated, read and serve index.html
-        try:
-            index_path = os.path.dirname(os.path.abspath(__file__)) + '/../index.html'
-            with open(index_path, 'rt', encoding='utf8') as htmlf:
-                html_content = htmlf.read()
-                return HTMLResponse(html_content)
-        except FileNotFoundError:
-            return HTMLResponse("""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>File Not Found</title>
-                <meta charset="utf-8">
-                <style>
-                    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-                    .error { color: #e74c3c; font-size: 1.2em; margin: 20px 0; }
-                </style>
-            </head>
-            <body>
-                <h1>📄 File Not Found</h1>
-                <div class="error">index.html file not found. Please check the file path.</div>
-            </body>
-            </html>
-            """)
-        except Exception as e:
-            return HTMLResponse(f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Error</title>
-                <meta charset="utf-8">
-                <style>
-                    body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; }}
-                    .error {{ color: #e74c3c; font-size: 1.2em; margin: 20px 0; }}
-                </style>
-            </head>
-            <body>
-                <h1>❌ Error</h1>
-                <div class="error">Error reading index.html: {str(e)}</div>
-            </body>
-            </html>
-            """)
+        if username and username == sys_username:
+            return {"authenticated": True, "username": username}
+        else:
+            return {"authenticated": False, "username": None}
             
-    except jwt.ExpiredSignatureError:
-        return HTMLResponse("""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Session Expired</title>
-            <meta charset="utf-8">
-            <style>
-                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-                .error { color: #e74c3c; font-size: 1.2em; margin: 20px 0; }
-                .login-link { background: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
-            </style>
-        </head>
-        <body>
-            <h1>⏰ Session Expired</h1>
-            <div class="error">Your login session has expired. Please log in again.</div>
-            <a href="/" class="login-link">Go to Login Page</a>
-        </body>
-        </html>
-        """)
-    except jwt.InvalidTokenError:
-        return HTMLResponse("""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Invalid Session</title>
-            <meta charset="utf-8">
-            <style>
-                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-                .error { color: #e74c3c; font-size: 1.2em; margin: 20px 0; }
-                .login-link { background: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
-            </style>
-        </head>
-        <body>
-            <h1>🔐 Invalid Session</h1>
-            <div class="error">Your login session is invalid. Please log in again.</div>
-            <a href="/" class="login-link">Go to Login Page</a>
-        </body>
-        </html>
-        """)
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+        return {"authenticated": False, "username": None}
+    except Exception:
+        return {"authenticated": False, "username": None}
+
+
+
+
+
+
+
+
+
 
 
 @app.get("/assets", response_model=list[AssetResponse])
-async def get_assets_api(token: str = Cookie(None)):
+async def get_assets_api():
     """Get all assets"""
-    if not token:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
-    try:
-        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
-        username = payload.get("username")
-        if username != "admin":
-            raise HTTPException(status_code=403, detail="Unauthorized user")
-
-        return [
-            AssetResponse(
-                currency=asset.currency,
-                balance=asset.balance,
-                locked=asset.locked,
-                avg_buy_price=asset.avg_buy_price,
-                total_coin=asset.total_coin,
-                buy_amount=asset.buy_amount,
-                current_amount=asset.current_amount,
-                current_price=asset.current_price,
-                profit_loss=asset.profit_loss,
-                profit_rate=asset.profit_rate
-            ) for asset in old_assets
-        ]
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    return [
+        AssetResponse(
+            currency=asset.currency,
+            balance=asset.balance,
+            locked=asset.locked,
+            avg_buy_price=asset.avg_buy_price,
+            total_coin=asset.total_coin,
+            buy_amount=asset.buy_amount,
+            current_amount=asset.current_amount,
+            current_price=asset.current_price,
+            profit_loss=asset.profit_loss,
+            profit_rate=asset.profit_rate
+        ) for asset in old_assets
+    ]
 
 
 @app.get("/orders", response_model=list[OrderResponse])
-async def get_orders_api(token: str = Cookie(None)):
+async def get_orders_api():
     """Get all orders"""
-    if not token:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
-    try:
-        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
-        username = payload.get("username")
-        if username != "admin":
-            raise HTTPException(status_code=403, detail="Unauthorized user")
-
-        return [
-            OrderResponse(
-                market=order.market,
-                currency=order.currency,
-                side=order.side,
-                buysell=order.buysell,
-                uuid=order.uuid,
-                price=order.price,
-                state=order.state,
-                volume=order.volume,
-                remaining_volume=order.remaining_volume,
-                locked=order.locked
-            ) for order in old_orders
-        ]
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    return [
+        OrderResponse(
+            market=order.market,
+            currency=order.currency,
+            side=order.side,
+            buysell=order.buysell,
+            uuid=order.uuid,
+            price=order.price,
+            state=order.state,
+            volume=order.volume,
+            remaining_volume=order.remaining_volume,
+            locked=order.locked
+        ) for order in old_orders
+    ]
 
 
 @app.post("/sell-order")
@@ -1190,41 +1074,15 @@ async def add_old_order(request: AddOldOrderRequest, token: str = Cookie(None)):
 
 
 @app.get("/sell-prices")
-async def get_sell_prices(token: str = Cookie(None)):
+async def get_sell_prices():
     """Get all sell prices dictionary"""
-    if not token:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
-    try:
-        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
-        username = payload.get("username")
-        if username != "admin":
-            raise HTTPException(status_code=403, detail="Unauthorized user")
-
-        return sell_prices
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    return sell_prices
 
 
 @app.get("/profit-rates")
-async def get_profit_rates(token: str = Cookie(None)):
+async def get_profit_rates():
     """Get all profit rates dictionary"""
-    if not token:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
-    try:
-        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
-        username = payload.get("username")
-        if username != "admin":
-            raise HTTPException(status_code=403, detail="Unauthorized user")
-
-        return {k: v * 100 for k, v in profit_rate.items()}  # Convert back to percentage
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    return {k: v * 100 for k, v in profit_rate.items()}  # Convert back to percentage
 
 
 @app.get("/auto-sell")
@@ -1354,6 +1212,160 @@ async def delete_sell_data(request: dict, token: str = Cookie(None)):
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+
+@app.get("/coinlist")
+async def get_coinlist():
+    """Get list of available coins with English and Korean names"""
+    # Sample coin data as fallback
+    fallback_coinlist = [
+        {"symbol": "BTC", "name_en": "Bitcoin", "name_kr": "비트코인"},
+        {"symbol": "ETH", "name_en": "Ethereum", "name_kr": "이더리움"},
+        {"symbol": "XRP", "name_en": "Ripple", "name_kr": "리플"},
+        {"symbol": "ADA", "name_en": "Cardano", "name_kr": "카르다노"},
+        {"symbol": "DOT", "name_en": "Polkadot", "name_kr": "폴카닷"},
+        {"symbol": "LINK", "name_en": "Chainlink", "name_kr": "체인링크"},
+        {"symbol": "LTC", "name_en": "Litecoin", "name_kr": "라이트코인"},
+        {"symbol": "BCH", "name_en": "Bitcoin Cash", "name_kr": "비트코인 캐시"},
+        {"symbol": "EOS", "name_en": "EOS", "name_kr": "이오스"},
+        {"symbol": "TRX", "name_en": "TRON", "name_kr": "트론"},
+        {"symbol": "XLM", "name_en": "Stellar", "name_kr": "스텔라"},
+        {"symbol": "VET", "name_en": "VeChain", "name_kr": "비체인"},
+        {"symbol": "FIL", "name_en": "Filecoin", "name_kr": "파일코인"},
+        {"symbol": "THETA", "name_en": "Theta", "name_kr": "쎄타"},
+        {"symbol": "AAVE", "name_en": "Aave", "name_kr": "아베"},
+        {"symbol": "SUSHI", "name_en": "SushiSwap", "name_kr": "스시스왑"},
+        {"symbol": "SNX", "name_en": "Synthetix", "name_kr": "신세틱스"},
+        {"symbol": "YFI", "name_en": "Yearn Finance", "name_kr": "이어n 파이낸스"},
+        {"symbol": "COMP", "name_en": "Compound", "name_kr": "컴파운드"},
+        {"symbol": "MKR", "name_en": "Maker", "name_kr": "메이커"}
+    ]
+
+    try:
+        # Try to fetch from Bithumb API
+        url = "https://api.bithumb.com/v1/market/all?isDetails=false"
+        headers = {"accept": "application/json"}
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()  # Raise an exception for bad status codes
+        
+        coinjson = json.loads(response.text)
+        coinlist = []
+        
+        for j in coinjson:
+            try:
+                market = j['market'][4:]  # Remove 'KRW-' prefix
+                k_name = j['korean_name']
+                e_name = j['english_name']
+                coinlist.append({"symbol": market, "name_en": e_name, "name_kr": k_name})
+            except (KeyError, IndexError) as e:
+                print(f"Error processing coin data: {e}")
+                continue
+        
+        # Return API data if we got any coins, otherwise fallback
+        if coinlist:
+            return coinlist
+        else:
+            print("No coins from API, using fallback data")
+            return fallback_coinlist
+            
+    except Exception as e:
+        print(f"Error fetching coin list from API: {e}")
+        return fallback_coinlist
+
+
+@app.get("/chart", response_class=HTMLResponse)
+async def get_chart_page(coin: str = None):
+    """Serve the chart page for the selected coin"""
+    if not coin:
+        coin = "BTC"  # Default to Bitcoin if no coin specified
+    
+    try:
+        # Read chart.html file from project root
+        with open("../chart.html", "r", encoding="utf-8") as f:
+            chart_html = f.read()
+        
+        # Replace {coin} placeholder with actual coin value
+        chart_html = chart_html.replace("{coin}", coin)
+        
+        return chart_html
+    except FileNotFoundError:
+        return HTMLResponse("<h1>Chart page not found</h1>", status_code=404)
+    except Exception as e:
+        return HTMLResponse(f"<h1>Error loading chart page: {str(e)}</h1>", status_code=500)
+
+@app.get("/chart-data/minutes/{currency}")
+async def get_chart_data_minutes(currency: str, unit: int = 5):
+    """Get minute-level chart data for a currency"""
+    try:
+        url = f"https://api.bithumb.com/v1/candles/minutes/{unit}?market=KRW-{currency}&count=200"
+        headers = {"accept": "application/json"}
+        
+        print(f"Fetching minute data for {currency} with unit {unit}")
+        print(f"URL: {url}")
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        print(f"Response status: {response.status_code}")
+        print(f"Response text: {response.text[:500]}...")  # First 500 chars
+        
+        response.raise_for_status()
+        
+        data = response.json()
+        print(f"Parsed data length: {len(data) if isinstance(data, list) else 'Not a list'}")
+        return data
+    except Exception as e:
+        print(f"Error fetching minute data for {currency}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching chart data: {str(e)}")
+
+@app.get("/chart-data/days/{currency}")
+async def get_chart_data_days(currency: str):
+    """Get daily chart data for a currency"""
+    try:
+        url = f"https://api.bithumb.com/v1/candles/days?market=KRW-{currency}&count=200"
+        headers = {"accept": "application/json"}
+        
+        print(f"Fetching daily data for {currency}")
+        print(f"URL: {url}")
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        print(f"Response status: {response.status_code}")
+        print(f"Response text: {response.text[:500]}...")  # First 500 chars
+        
+        response.raise_for_status()
+        
+        data = response.json()
+        print(f"Parsed data length: {len(data) if isinstance(data, list) else 'Not a list'}")
+        return data
+    except Exception as e:
+        print(f"Error fetching daily data for {currency}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching chart data: {str(e)}")
+
+
+def get_minutes(currency, unit):
+    import requests
+
+    url = "https://api.bithumb.com/v1/candles/minutes/{}?market=KRW-{}&count=200".format(unit, currency)
+
+    headers = {"accept": "application/json"}
+
+    response = requests.get(url, headers=headers)
+
+    print(response.text)
+    return response.text
+
+
+
+def get_days(currency):
+    import requests
+
+    url = "https://api.bithumb.com/v1/candles/days?market=KRW-{}&count=200".format(currency)
+
+    headers = {"accept": "application/json"}
+
+    response = requests.get(url, headers=headers)
+
+    print(response.text)
+    return response.text
 
 
 if __name__ == "__main__":

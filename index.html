@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RichCoin - Asset Management Dashboard</title>
+    <title>SojuCoin - Asset Management Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -34,6 +34,7 @@
             align-items: center;
             flex-wrap: wrap; /* Allow wrapping on small screens */
             gap: 10px;
+            min-height: auto;
         }
 
         .header-content {
@@ -57,15 +58,15 @@
         .dashboard {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Smaller minimum for mobile */
-            gap: 15px; /* Reduced gap for mobile */
-            margin-bottom: 20px; /* Reduced margin for mobile */
+            gap: 3px; /* Reduced gap for mobile */
+            margin-bottom: 3px; /* Reduced margin for mobile */
         }
 
         .card {
             background: white;
-            border-radius: 12px; /* Slightly smaller radius */
-            padding: 20px; /* Reduced padding for mobile */
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border-radius: 3px;
+            padding: 0px; /* No padding to save space */
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
@@ -83,14 +84,14 @@
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px; /* Reduced gap for mobile */
+            gap: 3px; /* Reduced gap for mobile */
         }
 
         .stat-item {
             text-align: center;
-            padding: 12px; /* Reduced padding for mobile */
+            padding: 0px; /* No padding to save space */
             background: #f8f9fa;
-            border-radius: 8px;
+            border-radius: 3px;
         }
 
         .stat-value {
@@ -107,10 +108,10 @@
 
         .api-section {
             background: white;
-            border-radius: 12px;
-            padding: 20px; /* Reduced padding for mobile */
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-            margin-bottom: 15px; /* Reduced margin for mobile */
+            border-radius: 3px;
+            padding: 0px; /* No padding to save space */
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            margin-bottom: 3px; /* Minimal margin */
         }
 
         .api-section h2 {
@@ -123,16 +124,16 @@
         .api-links {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            gap: 3px;
         }
 
         .api-link {
             display: block;
-            padding: 15px 20px;
+            padding: 0px; /* No padding to save space */
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             text-decoration: none;
-            border-radius: 10px;
+            border-radius: 3px;
             text-align: center;
             transition: transform 0.3s ease;
             font-weight: 500;
@@ -164,8 +165,8 @@
             background: #28a745;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 0px; /* No padding to save space */
+            border-radius: 3px;
             cursor: pointer;
             font-size: 1rem;
             transition: background 0.3s ease;
@@ -178,18 +179,22 @@
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 2px;
             font-size: 14px; /* Smaller font for mobile tables */
+            display: table; /* Ensure proper table display */
+            table-layout: fixed; /* Fixed layout for consistent columns */
         }
 
         .data-table th, .data-table td {
-            padding: 6px 4px; /* Reduced padding for mobile */
+            padding: 0; /* Reduced padding for mobile */
             text-align: left;
             border-bottom: 1px solid #ddd;
             word-wrap: break-word;
-            max-width: 120px; /* Prevent table from being too wide */
+            max-width: 80px; /* Reduced width for better mobile fit */
             overflow: hidden;
             text-overflow: ellipsis;
+            display: table-cell; /* Ensure proper table cell display */
+            vertical-align: middle;
         }
 
         .data-table th {
@@ -197,6 +202,8 @@
             font-weight: bold;
             font-size: 12px; /* Smaller header font for mobile */
             white-space: nowrap;
+            display: table-cell; /* Ensure proper table cell display */
+            vertical-align: middle;
         }
 
         .data-table td {
@@ -214,7 +221,7 @@
             width: 100px;
             padding: 4px;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 3px;
         }
 
         .submit-btn {
@@ -222,7 +229,7 @@
             color: white;
             border: none;
             padding: 6px 12px;
-            border-radius: 4px;
+            border-radius: 3px;
             cursor: pointer;
             font-size: 12px;
         }
@@ -231,12 +238,85 @@
             background: #218838;
         }
 
+        /* CSS Grid for sell prices */
+        .sell-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 10px;
+        }
+
+        .sell-grid-item {
+            display: grid;
+            grid-template-columns: auto 0.8fr 0.8fr auto; /* Currency | Price | Rate | Delete */
+            align-items: center;
+            gap: 0px;
+            padding: 0px;
+            background: #f8f9fa;
+            border-radius: 3px;
+            border: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .sell-grid-item:nth-child(even) {
+            background: #ffffff;
+        }
+
+        .sell-grid-item:hover {
+            background: #e9ecef;
+        }
+
+        .sell-currency {
+            font-weight: bold;
+            font-size: 12px;
+            color: #333;
+            line-height: 0.9;
+        }
+
+        .sell-price {
+            color: #333;
+            text-align: right;
+            font-size: 14px;
+            line-height: 0.9;
+        }
+
+        .sell-rate {
+            color: #666;
+            text-align: right;
+            font-size: 14px;
+            line-height: 0.9;
+        }
+
+        .sell-delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 0px 2px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            min-width: 45px;
+            height: 16px;
+            line-height: 16px;
+            margin: 0px 0px 0px 20px;
+        }
+
+        .sell-delete-btn:hover {
+            background: #c82333;
+        }
+
+        /* Extra gap for first column delete button */
+        .sell-grid-item:nth-child(odd) .sell-delete-btn {
+            margin-right: 2px;
+        }
+
         .logout-btn {
             background: #e74c3c;
             color: white;
             border: none;
             padding: 8px 16px; /* Smaller padding for mobile */
-            border-radius: 6px;
+            border-radius: 3px;
             cursor: pointer;
             font-size: 12px; /* Smaller font for mobile */
             font-weight: bold;
@@ -250,90 +330,263 @@
             background: #c0392b;
         }
 
-        /* Mobile-specific styles */
+        #chart-btn:enabled {
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+        }
+
+        #chart-btn:enabled:hover {
+            background: #5a6fd8;
+        }
+
+        #chart-btn:disabled {
+            background: #ccc;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        /* Mobile-specific styles - Optimized for Galaxy S24 (1080x2340) */
         @media (max-width: 768px) {
             .container {
-                padding: 5px;
+                padding: 8px;
+                max-width: 100%;
             }
 
             .header {
-                flex-direction: column;
-                gap: 15px;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 15px;
+            }
+
+            .header-content {
+                flex-grow: 1;
+                min-width: 0;
+                text-align: left;
+            }
+
+            #login-status {
+                display: none !important;
             }
 
             .header h1 {
-                font-size: 1.8rem;
+                font-size: 1.6rem;
+                margin-bottom: 2px;
             }
 
             .header p {
-                font-size: 0.9rem;
+                font-size: 0.85rem;
+                margin-bottom: 4px;
             }
 
             .logout-btn {
-                padding: 10px 20px;
-                font-size: 14px;
-                min-width: 100px;
+                padding: 8px 16px;
+                font-size: 13px;
+                min-width: 90px;
+                min-height: 40px;
             }
 
             .api-section {
-                padding: 15px;
-                margin-bottom: 10px;
+                padding: 12px;
+                margin-bottom: 12px;
+                border-radius: 3px;
             }
 
             .api-section h2 {
-                font-size: 1.2rem;
+                font-size: 1.1rem;
+                margin-bottom: 12px;
             }
 
+            /* Login status indicator */
+            #login-status {
+                font-size: 0.8rem !important;
+                padding: 6px 8px !important;
+                margin-top: 8px !important;
+            }
+
+            /* Assets Overview section mobile optimization */
+            .api-section > div:first-child {
+                gap: 10px !important;
+            }
+
+            .api-section h2 {
+                font-size: 1rem !important;
+                white-space: nowrap;
+                flex-shrink: 1;
+            }
+
+            /* Total value display */
+            #total-value-display {
+                font-size: 0.9rem !important;
+                padding: 4px 8px !important;
+                min-width: 140px !important;
+                flex-shrink: 0;
+            }
+
+            /* Coin select section mobile optimization */
+            .api-section > div:first-child {
+                gap: 6px !important;
+            }
+
+            .api-section h2 {
+                font-size: 1rem !important;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            /* Coin select box mobile optimization */
+            #coin-select {
+                font-size: 13px !important;
+                padding: 6px 8px !important;
+                min-height: 44px !important;
+                flex-grow: 1;
+            }
+
+            /* Chart button mobile optimization */
+            #chart-btn {
+                font-size: 13px !important;
+                padding: 6px 12px !important;
+                min-height: 44px !important;
+                flex-shrink: 0;
+            }
+
+            /* Table optimizations */
             .data-table {
-                font-size: 11px;
+                font-size: 10px;
+                min-width: 100%;
             }
 
             .data-table th, .data-table td {
-                padding: 4px 2px;
+                padding: 0;
                 font-size: 10px;
-                max-width: 80px;
+                max-width: 50px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: table-cell; /* Ensure proper table cell display */
+                vertical-align: middle;
             }
 
             /* Make tables scrollable horizontally on mobile */
             .table-container {
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
+                border-radius: 3px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             }
 
-                         /* Input fields for sell table */
-             input[type="text"], input[type="number"] {
-                 padding: 6px;
-                 font-size: 12px;
-                 min-height: 40px; /* Touch-friendly size */
-                 width: 70px;
-                 min-width: 70px;
-                 margin-bottom: 5px;
-             }
+            /* Input fields for sell table */
+            input[type="text"], input[type="number"] {
+                padding: 8px;
+                font-size: 13px;
+                min-height: 44px; /* Better touch target */
+                width: 80px;
+                min-width: 80px;
+                margin-bottom: 8px;
+                border-radius: 3px;
+            }
 
-                         /* Button in sell table */
-             button[onclick="updateSellData()"] {
-                 padding: 6px 10px;
-                 font-size: 12px;
-                 min-height: 40px;
-                 width: auto;
-                 margin-top: 5px;
-             }
+            /* Button in sell table */
+            button[onclick="updateSellData()"] {
+                padding: 8px 12px;
+                font-size: 13px;
+                min-height: 44px;
+                width: auto;
+                margin-top: 8px;
+                border-radius: 3px;
+            }
 
-                         /* Sell table input container */
-             .sell-inputs {
-                 display: flex;
-                 flex-direction: row;
-                 flex-wrap: nowrap;
-                 gap: 5px;
-                 overflow-x: auto;
-                 -webkit-overflow-scrolling: touch;
-             }
+            /* Sell table input container */
+            .sell-inputs {
+                display: flex;
+                flex-direction: row;
+                flex-wrap: nowrap;
+                gap: 8px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding: 8px 0;
+            }
+
+            /* Mobile CSS Grid adjustments - keep two columns */
+            .sell-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 2px;
+                padding: 0px;
+            }
+
+            .sell-grid-item {
+                padding: 0px;
+                gap: 0px;
+            }
+
+            .sell-currency {
+                font-size: 11px;
+            }
+
+            .sell-price {
+                font-size: 15px;
+            }
+
+            .sell-rate {
+                font-size: 15px;
+            }
+
+            .sell-delete-btn {
+                padding: 0px 2px;
+                font-size: 14px;
+                min-width: 55px;
+                height: 16px;
+                line-height: 16px;
+                margin: 2px 2px 2px 20px;
+            }
+
+            /* Auto-sell toggle button */
+            #sell-auto-toggle {
+                padding: 6px 12px !important;
+                font-size: 12px !important;
+                min-height: 22px !important;
+                border-radius: 3px !important;
+            }
+
+            /* Card optimizations */
+            .card {
+                padding: 0px;
+                margin-bottom: 3px;
+            }
+
+            .card h2 {
+                font-size: 1.2rem;
+                margin-bottom: 10px;
+            }
+
+            /* Stats grid */
+            .stats-grid {
+                gap: 10px;
+            }
+
+            .stat-item {
+                padding: 10px;
+            }
+
+            .stat-value {
+                font-size: 1.3rem;
+            }
+
+            .stat-label {
+                font-size: 0.75rem;
+            }
         }
 
-        /* Extra small screens */
+        /* Extra small screens - Galaxy S24 and similar */
         @media (max-width: 480px) {
+            .container {
+                padding: 6px;
+            }
+
             .header h1 {
-                font-size: 1.5rem;
+                font-size: 1.4rem;
             }
 
             .header p {
@@ -341,21 +594,227 @@
             }
 
             .data-table {
-                font-size: 10px;
+                font-size: 9px;
             }
 
             .data-table th, .data-table td {
-                padding: 3px 1px;
+                padding: 0;
                 font-size: 9px;
-                max-width: 60px;
+                max-width: 45px;
+                display: table-cell; /* Ensure proper table cell display */
+                vertical-align: middle;
             }
 
             .api-section {
                 padding: 10px;
+                margin-bottom: 10px;
             }
 
             .api-section h2 {
-                font-size: 1.1rem;
+                font-size: 1rem;
+            }
+
+            /* Header layout improvements */
+            .header {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                gap: 6px;
+                margin-bottom: 12px;
+            }
+
+            .header-content {
+                flex-grow: 1;
+                min-width: 0;
+                text-align: left;
+            }
+
+            #login-status {
+                display: none !important;
+            }
+
+            .logout-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+                min-width: 80px;
+            }
+
+            /* Input fields */
+            input[type="text"], input[type="number"] {
+                width: 70px;
+                min-width: 70px;
+                font-size: 12px;
+                padding: 6px;
+            }
+
+            /* Extra small screens - keep two columns for sell grid */
+            .sell-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 3px;
+                padding: 4px;
+            }
+
+            .sell-grid-item {
+                padding: 0px;
+                gap: 0px;
+            }
+
+            .sell-currency {
+                font-size: 10px;
+            }
+
+            .sell-price {
+                font-size: 11px;
+            }
+
+            .sell-rate {
+                font-size: 10px;
+            }
+
+            .sell-delete-btn {
+                padding: 0px 1px;
+                font-size: 14px;
+                min-width: 25px;
+                height: 16px;
+                line-height: 16px;
+                margin: 0px 0px 0px 20px;
+            }
+
+            /* Assets Overview section extra small screen optimization */
+            .api-section > div:first-child {
+                gap: 6px !important;
+            }
+
+            .api-section h2 {
+                font-size: 0.9rem !important;
+                white-space: nowrap;
+                flex-shrink: 1;
+            }
+
+            /* Total value display */
+            #total-value-display {
+                font-size: 0.8rem !important;
+                min-width: 120px !important;
+                padding: 3px 6px !important;
+                flex-shrink: 0;
+            }
+
+            /* Coin select section extra small screen optimization */
+            .api-section > div:first-child {
+                gap: 4px !important;
+            }
+
+            .api-section h2 {
+                font-size: 0.9rem !important;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            /* Coin select box extra small screen optimization */
+            #coin-select {
+                font-size: 12px !important;
+                padding: 5px 6px !important;
+                min-height: 40px !important;
+                flex-grow: 1;
+            }
+
+            /* Chart button extra small screen optimization */
+            #chart-btn {
+                font-size: 12px !important;
+                padding: 5px 10px !important;
+                min-height: 40px !important;
+                flex-shrink: 0;
+            }
+        }
+
+        /* Galaxy S24 specific optimizations (1080x2340) */
+        @media (max-width: 412px) and (max-height: 915px) {
+            .container {
+                padding: 4px;
+            }
+
+            .header {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                gap: 4px;
+            }
+
+            .header-content {
+                flex-grow: 1;
+                min-width: 0;
+                text-align: left;
+            }
+
+            #login-status {
+                display: none !important;
+            }
+
+            .header h1 {
+                font-size: 1.3rem;
+            }
+
+            /* Assets Overview section Galaxy S24 optimization */
+            .api-section > div:first-child {
+                gap: 4px !important;
+            }
+
+            .api-section h2 {
+                font-size: 0.8rem !important;
+                white-space: nowrap;
+                flex-shrink: 1;
+            }
+
+            #total-value-display {
+                font-size: 0.75rem !important;
+                min-width: 110px !important;
+                padding: 2px 4px !important;
+                flex-shrink: 0;
+            }
+
+            /* Coin select section Galaxy S24 optimization */
+            .api-section > div:first-child {
+                gap: 3px !important;
+            }
+
+            .api-section h2 {
+                font-size: 0.8rem !important;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            /* Coin select box Galaxy S24 optimization */
+            #coin-select {
+                font-size: 11px !important;
+                padding: 4px 5px !important;
+                min-height: 36px !important;
+                flex-grow: 1;
+            }
+
+            /* Chart button Galaxy S24 optimization */
+            #chart-btn {
+                font-size: 11px !important;
+                padding: 4px 8px !important;
+                min-height: 36px !important;
+                flex-shrink: 0;
+            }
+
+            .data-table th, .data-table td {
+                padding: 0;
+                font-size: 9px;
+                max-width: 40px;
+                display: table-cell; /* Ensure proper table cell display */
+                vertical-align: middle;
+            }
+
+            .api-section {
+                padding: 8px;
+            }
+
+            .logout-btn {
+                padding: 6px 10px;
+                font-size: 11px;
+                min-width: 70px;
             }
         }
 
@@ -374,53 +833,114 @@
             .logout-btn:hover {
                 background: #e74c3c;
             }
+
+            /* Improve touch targets - but keep table structure */
+            .data-table td {
+                min-height: 32px;
+                vertical-align: middle;
+            }
+
+            button {
+                min-height: 44px;
+                min-width: 44px;
+            }
         }
+
+
+        /* Put this AFTER the touch rule, near the end of your CSS */
+@media (hover: none) and (pointer: coarse) {
+  .sell-grid .sell-delete-btn {
+    min-height: 16px !important;
+    min-width: 40px !important;
+  }
+}
+
+/* Mobile tweaks: shrink row height */
+@media (max-width: 480px) {
+  .sell-grid-item {
+    min-height: 20px;        /* target row height */
+    padding: 0;              /* no extra padding */
+    gap: 0;
+    align-items: center;
+  }
+  .sell-grid .sell-currency,
+  .sell-grid .sell-price,
+  .sell-grid .sell-rate {
+    padding: 0 4px;
+    line-height: 1;          /* tighter text box */
+    font-size: 10px;         /* already small, ensure it sticks */
+  }
+  .sell-grid .sell-delete-btn {
+    height: 16px;
+    line-height: 16px;
+    padding: 0 4px;
+    margin: 0 4px;           /* remove big margins that add height */
+    font-size: 10px;
+  }
+}
+
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <div class="header-content">
-                <h1>💰 RichCoin</h1>
+                <h1>🍶 SojuCoin</h1>
                 <p>Asset Management Dashboard</p>
+                <div id="login-status" style="font-size: 0.9rem; margin-top: 5px; padding: 4px 8px; border-radius: 3px; display: none;">
+                    <span id="login-status-text"></span>
+                </div>
             </div>
             <button onclick="logout()" class="logout-btn">🚪 Logout</button>
         </div>
 
                  <div class="api-section">
-             <div style="display: flex; align-items: center; margin-bottom: 15px; gap: 80px;">
+             <div style="display: flex; align-items: center; margin-bottom: 0px; gap: 80px;">
                  <h2 style="margin: 0;">📊 Assets Overview</h2>
-                 <div id="total-value-display" style="font-size: 1.2rem; font-weight: bold; color: #667eea; background: #f8f9fa; padding: 8px 12px; border-radius: 6px; min-width: 150px; text-align: right;">
-                     Total: ₩0
+                 <div id="total-value-display" style="font-size: 1.2rem; font-weight: bold; color: #667eea; background: #f8f9fa; padding: 8px 12px; border-radius: 3px; min-width: 200px; text-align: right;">
+                     Total: ₩0 (₩0)
                  </div>
              </div>
              <div id="assets-container">
                  <div class="loading">Loading assets automatically every 0.5 seconds...</div>
              </div>
+             <div style="margin-top: 2px; display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; overflow-x: auto; height: 22px;" class="sell-inputs">
+                 <input type="text" id="new-currency" placeholder="Currency" style="padding: 2px 4px; border: 1px solid #ddd; border-radius: 3px; width: 60px; min-width: 60px; height: 18px; font-size: 11px; flex-shrink: 0;">
+                 <input type="number" id="new-sell-price" placeholder="Price" step="1" min="0" style="padding: 2px 4px; border: 1px solid #ddd; border-radius: 3px; width: 60px; min-width: 60px; height: 18px; font-size: 11px; flex-shrink: 0;">
+                 <input type="number" id="new-profit-rate" placeholder="Rate" step="0.1" min="0" max="100" style="padding: 2px 4px; border: 1px solid #ddd; border-radius: 3px; width: 60px; min-width: 60px; height: 18px; font-size: 11px; flex-shrink: 0;">
+                 <button onclick="updateSellData()" style="background: #28a745; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; height: 18px; font-size: 11px; flex-shrink: 0;">Update</button>
+             </div>
          </div>
 
-                 <div class="api-section">
-             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                 <h2 style="margin: 0;">💰 Sell Table</h2>
-                 <button id="sell-auto-toggle" onclick="toggleSellAuto()" style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; min-height: 32px;">Sell Auto: OFF</button>
-             </div>
-            <div id="sell-table-container">
-                <div class="loading">Loading sell data automatically every 0.5 seconds...</div>
-            </div>
-                         <div style="margin-top: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: nowrap; overflow-x: auto;" class="sell-inputs">
-                                 <input type="text" id="new-currency" placeholder="Currency" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 80px; min-width: 80px; min-height: 44px; font-size: 14px; flex-shrink: 0;">
-                 <input type="number" id="new-sell-price" placeholder="Price" step="1" min="0" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 80px; min-width: 80px; min-height: 44px; font-size: 14px; flex-shrink: 0;">
-                 <input type="number" id="new-profit-rate" placeholder="Rate" step="0.1" min="0" max="100" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 80px; min-width: 80px; min-height: 44px; font-size: 14px; flex-shrink: 0;">
-                 <button onclick="updateSellData()" style="background: #28a745; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; min-height: 44px; font-size: 14px; flex-shrink: 0;">Update</button>
-            </div>
-        </div>
-
         <div class="api-section">
-            <h2>📋 Orders Overview</h2>
+            <h2 style="margin: 0;">📋 Orders Overview</h2>
             <div id="orders-container">
                 <div class="loading">Loading orders automatically every 0.5 seconds...</div>
             </div>
         </div>
+
+        <div class="api-section">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <h2 style="margin: 0; flex-shrink: 0;">🪙 Select Coin</h2>
+                <select id="coin-select" style="flex-grow: 1; padding: 8px; border: 1px solid #ddd; border-radius: 3px; font-size: 14px;">
+                    <option value="">Loading coins...</option>
+                </select>
+                <button id="chart-btn" onclick="openChart()" disabled style="background: #ccc; color: #666; border: none; padding: 8px 16px; border-radius: 3px; cursor: not-allowed; font-size: 14px; flex-shrink: 0;">Chart</button>
+            </div>
+        </div>
+
+                 <div class="api-section">
+             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0px;">
+                 <h2 style="margin: 0;">💰 Sell Table</h2>
+                 <button id="sell-auto-toggle" onclick="toggleSellAuto()" style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 12px; min-height: 22px;">Sell Auto: OFF</button>
+             </div>
+            <div id="sell-table-container" style="margin-top: 2px;">
+                <div class="loading">Loading sell data automatically every 0.5 seconds...</div>
+            </div>
+
+        </div>
+
+
     </div>
 
     <script>
@@ -431,36 +951,70 @@
         let auto_sell = false; // Internal variable for sell auto toggle
         let tokenRefreshInterval; // Interval for token refresh
         let isLoggedIn = false; // Track login state
+        let currentSellPrices = {}; // Store current sell prices globally
+        let currentProfitRates = {}; // Store current profit rates globally
 
         // Check API status on page load and start auto-refresh
-        window.onload = function() {
-            checkLoginStatus();
+        window.onload = async function() {
+            await checkLoginStatus();
             checkApiStatus();
             loadAutoSellStatus();
+            loadCoinList();
             startAutoRefresh();
             startTokenRefresh(); // Start automatic token refresh
+            
+            // Add event listener to coin select dropdown
+            document.getElementById('coin-select').addEventListener('change', updateChartButtonState);
         };
 
         // Check if user is logged in and handle session persistence
         async function checkLoginStatus() {
             try {
-                const response = await fetch(`${API_BASE}/assets`, {
+                const response = await fetch(`${API_BASE}/auto-sell`, {
                     credentials: 'include'
                 });
                 
                 if (response.ok) {
                     isLoggedIn = true;
-                    console.log('User is logged in - session active');
+                    console.log('User is logged in - session active, isLoggedIn set to:', isLoggedIn);
+                    updateLoginStatusDisplay();
                 } else if (response.status === 401) {
                     // Token expired or invalid, try to refresh
-                    await refreshToken();
+                    const refreshSuccess = await refreshToken();
+                    if (!refreshSuccess) {
+                        // If refresh fails, set logged out but don't redirect immediately
+                        isLoggedIn = false;
+                        console.log('User is not logged in, isLoggedIn set to:', isLoggedIn);
+                        updateLoginStatusDisplay();
+                    }
                 } else {
-                    // Other error, redirect to login
-                    redirectToLogin();
+                    // Other error, set logged out but don't redirect immediately
+                    isLoggedIn = false;
+                    console.log('Other error, user is not logged in, isLoggedIn set to:', isLoggedIn);
+                    updateLoginStatusDisplay();
                 }
             } catch (error) {
                 console.error('Error checking login status:', error);
-                redirectToLogin();
+                // Set logged out but don't redirect immediately
+                isLoggedIn = false;
+                console.log('Error occurred, user is not logged in, isLoggedIn set to:', isLoggedIn);
+                updateLoginStatusDisplay();
+            }
+        }
+
+        // Update the login status display
+        function updateLoginStatusDisplay() {
+            const statusElement = document.getElementById('login-status');
+            const statusText = document.getElementById('login-status-text');
+            
+            if (isLoggedIn) {
+                statusElement.style.display = 'none';
+            } else {
+                statusElement.style.display = 'block';
+                statusElement.style.backgroundColor = '#fff3cd';
+                statusElement.style.color = '#856404';
+                statusElement.style.border = '1px solid #ffeaa7';
+                statusText.textContent = '🔒 Read-only mode - Please log in to access all features';
             }
         }
 
@@ -477,13 +1031,11 @@
                     console.log('Token refreshed successfully');
                     return true;
                 } else {
-                    console.log('Token refresh failed, redirecting to login');
-                    redirectToLogin();
+                    console.log('Token refresh failed');
                     return false;
                 }
             } catch (error) {
                 console.error('Error refreshing token:', error);
-                redirectToLogin();
                 return false;
             }
         }
@@ -502,10 +1054,10 @@
             }, 6 * 24 * 60 * 60 * 1000);
         }
 
-        // Redirect to login page
+        // Redirect to login page (only called from logout function now)
         function redirectToLogin() {
             isLoggedIn = false;
-            console.log('Redirecting to login page');
+            console.log('Redirecting to login page, isLoggedIn set to:', isLoggedIn);
             window.location.href = `${API_BASE}/`;
         }
 
@@ -576,6 +1128,62 @@
             }
         }
 
+        async function loadCoinList() {
+            try {
+                const response = await fetch(`${API_BASE}/coinlist`);
+                const coinlist = await response.json();
+                
+                const selectElement = document.getElementById('coin-select');
+                if (selectElement) {
+                    // Clear existing options
+                    selectElement.innerHTML = '';
+                    
+                    // Add default option
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = 'Select a coin...';
+                    selectElement.appendChild(defaultOption);
+                    
+                    // Add coin options
+                    coinlist.forEach(coin => {
+                        const option = document.createElement('option');
+                        option.value = coin.symbol;
+                        option.textContent = `${coin.name_en} / ${coin.name_kr} (${coin.symbol})`;
+                        selectElement.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading coin list:', error);
+                const selectElement = document.getElementById('coin-select');
+                if (selectElement) {
+                    selectElement.innerHTML = '<option value="">Error loading coins</option>';
+                }
+            }
+        }
+
+        function updateChartButtonState() {
+            const selectedCoin = document.getElementById('coin-select').value;
+            const chartBtn = document.getElementById('chart-btn');
+            
+            if (selectedCoin) {
+                chartBtn.disabled = false;
+            } else {
+                chartBtn.disabled = true;
+            }
+        }
+
+        function openChart() {
+            const selectedCoin = document.getElementById('coin-select').value;
+            if (!selectedCoin) {
+                alert('Please select a coin first');
+                return;
+            }
+            
+            // Navigate to chart page in current window
+            const chartUrl = `${API_BASE}/chart?coin=${encodeURIComponent(selectedCoin)}`;
+            window.location.href = chartUrl;
+        }
+
         async function loadAssets() {
             const container = document.getElementById('assets-container');
             
@@ -636,19 +1244,16 @@
             const backgroundColor = refreshCount % 2 === 0 ? '#fff3cd' : '#d1ecf1';
             console.log(`Refresh count: ${refreshCount}, Background color: ${backgroundColor}`);
             let html = `
-                <div style="background-color: ${backgroundColor}; padding: 15px; border-radius: 8px;">
+                <div style="background-color: ${backgroundColor}; padding: 15px; border-radius: 3px;">
                     <div class="table-container" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-                        <table class="data-table" style="min-width: 600px; font-size: 12px; width: 100%; min-width: 400px;">
+                        <table class="data-table" style="min-width: 220px; font-size: 12px; width: 100%;">
                                                          <thead>
-                                 <tr style="padding: 6px 0;">
-                                     <th style="padding: 6px 8px; width: 80px; min-width: 80px;">Currency</th>
-                                     <th style="padding: 6px 8px; width: 80px; min-width: 80px; text-align: right;">Volume</th>
-                                     <th style="padding: 6px 8px; width: 100px; min-width: 100px; text-align: right;">Avg Buy Price</th>
-                                     <th style="padding: 6px 8px; width: 80px; min-width: 80px; text-align: right;">Price</th>
-                                     <th style="padding: 6px 8px; width: 80px; min-width: 80px; text-align: right;">Buy</th>
-                                     <th style="padding: 6px 8px; width: 80px; min-width: 80px; text-align: right;">Valued</th>
-                                     <th style="padding: 6px 8px; width: 80px; min-width: 80px; text-align: right;">Profit</th>
-                                     <th style="padding: 6px 8px; width: 80px; min-width: 80px; text-align: right;">Rate</th>
+                                 <tr style="padding: 4px 0;">
+                                     <th style="padding: 2px 1px; width: 30px; min-width: 30px; font-size: 11px;">Currency</th>
+                                     <th style="padding: 2px 1px; width: 50px; min-width: 50px; text-align: right; font-size: 11px;">Volume / Avg</th>
+                                     <th style="padding: 2px 1px; width: 40px; min-width: 40px; text-align: right; font-size: 11px;">Price</th>
+                                     <th style="padding: 2px 1px; width: 50px; min-width: 50px; text-align: right; font-size: 11px;">Buy / Valued</th>
+                                     <th style="padding: 2px 1px; width: 50px; min-width: 50px; text-align: right; font-size: 11px;">Profit / Rate</th>
                                  </tr>
                              </thead>
                             <tbody>
@@ -682,18 +1287,24 @@
                 assetRows.push({
                     currency: asset.currency,
                     html: `
-                        <tr onclick="fillCurrencyField('${asset.currency}')" style="cursor: pointer; padding: 4px 0;">
-                                                         <td style="padding: 4px 8px; width: 80px; min-width: 80px;"><strong>${asset.currency}</strong></td>
-                                                          <td style="padding: 4px 8px; width: 80px; min-width: 80px; text-align: right;">${asset.total_coin ? asset.total_coin.toFixed(4) : '0.0000'}</td>
-                             <td style="padding: 4px 8px; width: 100px; min-width: 100px; text-align: right;">${asset.avg_buy_price.toLocaleString()}</td>
-                             <td style="padding: 4px 8px; width: 80px; min-width: 80px; text-align: right;">
-                                 ${asset.current_price ? asset.current_price.toLocaleString() : '0'}
-                                 ${sellOrder ? `<br><span style="color: #dc3545;">${sellOrder.price.toLocaleString()}</span>` : ''}
+                        <tr onclick="fillInputFieldsFromAsset(${JSON.stringify(asset).replace(/"/g, '&quot;')})" style="cursor: pointer; padding: 2px 0;">
+                                                         <td style="padding: 2px 1px; width: 30px; min-width: 30px; font-size: 12px;"><strong>${asset.currency}</strong></td>
+                                                          <td style="padding: 2px 1px; width: 50px; min-width: 50px; text-align: right; line-height: 1.1; font-size: 11px;">
+                                 ${asset.total_coin ? asset.total_coin.toFixed(4) : '0.0000'}<br>
+                                 <span style="font-size: 10px; color: #666;">${asset.avg_buy_price.toLocaleString()}</span>
                              </td>
-                             <td style="padding: 4px 8px; width: 80px; min-width: 80px; text-align: right;">${asset.buy_amount ? asset.buy_amount.toLocaleString() : '0'}</td>
-                                                          <td style="padding: 4px 8px; width: 80px; min-width: 80px; text-align: right;">${asset.current_amount ? asset.current_amount.toLocaleString() : '0'}</td>
-                             <td style="padding: 4px 8px; width: 80px; min-width: 80px; text-align: right;">${asset.profit_loss ? asset.profit_loss.toLocaleString() : '0'}</td>
-                             <td style="padding: 4px 8px; width: 80px; min-width: 80px; text-align: right;">${asset.profit_rate ? (asset.profit_rate * 100).toFixed(2) + '%' : '0.00%'}</td>
+                             <td style="padding: 2px 1px; width: 40px; min-width: 40px; text-align: right; font-size: 11px;">
+                                 ${asset.current_price ? asset.current_price.toLocaleString() : '0'}
+                                 ${sellOrder ? `<br><span style="color: #dc3545; font-size: 10px;">${sellOrder.price.toLocaleString()}</span>` : ''}
+                             </td>
+                             <td style="padding: 2px 1px; width: 50px; min-width: 50px; text-align: right; line-height: 1.1; font-size: 11px;">
+                                 ${asset.buy_amount ? asset.buy_amount.toLocaleString() : '0'}<br>
+                                 <span style="font-size: 10px; color: #666;">${asset.current_amount ? asset.current_amount.toLocaleString() : '0'}</span>
+                             </td>
+                             <td style="padding: 2px 1px; width: 50px; min-width: 50px; text-align: right; line-height: 1.1; font-size: 11px;">
+                                 ${asset.profit_loss ? asset.profit_loss.toLocaleString() : '0'}<br>
+                                 <span style="font-size: 10px; color: #666;">${asset.profit_rate ? (asset.profit_rate * 100).toFixed(2) + '%' : '0.00%'}</span>
+                             </td>
                         </tr>
                     `
                 });
@@ -705,11 +1316,11 @@
                                          // Update the total value display
                             const totalValueDisplay = document.getElementById('total-value-display');
                             if (totalValueDisplay) {
-                                totalValueDisplay.innerHTML = `Total: ₩${Math.floor(totalValueForDisplay).toLocaleString()}`;
+                                totalValueDisplay.innerHTML = `Total: ₩${Math.floor(totalValueForDisplay).toLocaleString()} (₩${Math.floor(krwVolume).toLocaleString()})`;
                             }
                             
                             // Update the browser window title with the KRW total
-                            document.title = `₩${Math.floor(totalValueForDisplay).toLocaleString()} - RichCoin`;
+                            document.title = `₩${Math.floor(totalValueForDisplay).toLocaleString()} - SojuCoin`;
  
                           // Second pass: render rows, skip KRW row
              assetRows.forEach(row => {
@@ -789,6 +1400,8 @@
                 return;
             }
 
+            console.log('displayOrders - isLoggedIn:', isLoggedIn);
+
                         // Sort orders by currency first, then by price in descending order
             const sortedOrders = orders.sort((a, b) => {
                 // First sort by currency
@@ -802,36 +1415,34 @@
 
             let html = `
                 <div class="table-container" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-                    <table class="data-table" style="min-width: 500px; font-size: 12px;">
+                    <table class="data-table" style="min-width: 350px; font-size: 11px;">
                         <thead>
                              <tr style="padding: 6px 0;">
-                                 <th style="padding: 6px 8px; width: 80px; min-width: 80px;">Currency</th>
-                                 <th style="padding: 6px 8px; width: 60px; min-width: 60px;">Side</th>
-                                 <th style="padding: 6px 8px; width: 50px; min-width: 50px; text-align: right;">Price</th>
-                                 <th style="padding: 6px 8px; width: 56px; min-width: 56px; text-align: right;">Amount</th>
-                                 <th style="padding: 6px 8px; width: 80px; min-width: 80px; text-align: right;">Remaining</th>
-                                 <th style="padding: 6px 8px; width: 80px; min-width: 80px;">State</th>
-                                 <th style="padding: 6px 8px; width: 80px; min-width: 80px;">Action</th>
+                                 <th style="padding: 2px 1px; width: 35px; min-width: 35px;">Currency</th>
+                                 <th style="padding: 2px 1px; width: 25px; min-width: 25px;">Side</th>
+                                 <th style="padding: 2px 1px; width: 35px; min-width: 35px; text-align: right;">Price</th>
+                                 <th style="padding: 2px 1px; width: 35px; min-width: 35px; text-align: right;">Amount</th>
+                                 <th style="padding: 2px 1px; width: 35px; min-width: 35px; text-align: right;">Remaining</th>
+                                 ${isLoggedIn ? '<th style="padding: 2px 1px; width: 30px; min-width: 30px;">Action</th>' : ''}
                              </tr>
                          </thead>
                          <tbody>
              `;
 
                           html += sortedOrders.map(order => `
-                  <tr onclick="fillCurrencyField('${order.currency}')" style="cursor: pointer; padding: 4px 0;">
-                      <td style="padding: 4px 8px; width: 80px; min-width: 80px;">${order.currency}</td>
-                      <td style="padding: 4px 8px; width: 60px; min-width: 60px;">${order.buysell}</td>
-                      <td style="padding: 4px 8px; width: 50px; min-width: 50px; text-align: right;">${order.price.toLocaleString()}</td>
-                      <td style="padding: 4px 8px; width: 56px; min-width: 56px; text-align: right;">${Math.floor(order.volume * order.price).toLocaleString()}</td>
-                      <td style="padding: 4px 8px; width: 80px; min-width: 80px; text-align: right;">${order.remaining_volume.toFixed(4)}</td>
-                      <td style="padding: 4px 8px; width: 80px; min-width: 80px;">${order.state}</td>
-                      <td style="padding: 4px 8px; width: 80px; min-width: 80px;">
+                  <tr onclick="fillInputFieldsFromOrder(${JSON.stringify(order).replace(/"/g, '&quot;')})" style="cursor: pointer; padding: 4px 0;">
+                      <td style="padding: 2px 1px; width: 35px; min-width: 35px;">${order.currency}</td>
+                      <td style="padding: 2px 1px; width: 25px; min-width: 25px;">${order.buysell}</td>
+                      <td style="padding: 2px 1px; width: 35px; min-width: 35px; text-align: right;">${order.price.toLocaleString()}</td>
+                      <td style="padding: 2px 1px; width: 35px; min-width: 35px; text-align: right;">${Math.floor(order.volume * order.price).toLocaleString()}</td>
+                      <td style="padding: 2px 1px; width: 35px; min-width: 35px; text-align: right;">${order.remaining_volume.toFixed(4)}</td>
+                      ${isLoggedIn ? `<td style="padding: 2px 1px; width: 30px; min-width: 30px;">
                           <button onclick="cancelOrder('${order.uuid}')" 
-                                  style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; min-height: 32px;"
+                                  style="background: #dc3545; color: white; border: none; padding: 2px 4px; border-radius: 3px; cursor: pointer; font-size: 8px; min-height: 24px;"
                                   onclick="event.stopPropagation();">
                               Cancel
                           </button>
-                      </td>
+                      </td>` : ''}
                   </tr>
               `).join('');
 
@@ -865,7 +1476,7 @@
                     fetch(`${API_BASE}/profit-rates`, { credentials: 'include' })
                 ]);
 
-                // Handle authentication errors
+                // Handle authentication errors - show empty data for non-logged in users
                 if (sellPricesResponse.status === 401 || profitRatesResponse.status === 401) {
                     if (await refreshToken()) {
                         // Retry the requests after token refresh
@@ -878,10 +1489,12 @@
                             const profitRates = await retryProfitRatesResponse.json();
                             displaySellTable(sellPrices, profitRates, container, scrollLeft);
                         } else {
-                            container.innerHTML = `<div class="loading">Error: Authentication failed</div>`;
+                            // Show empty data for non-authenticated users
+                            displaySellTable({}, {}, container, scrollLeft);
                         }
                     } else {
-                        container.innerHTML = `<div class="loading">Error: Authentication failed</div>`;
+                        // Show empty data for non-authenticated users
+                        displaySellTable({}, {}, container, scrollLeft);
                     }
                     return;
                 }
@@ -896,50 +1509,47 @@
         }
 
         function displaySellTable(sellPrices, profitRates, container, scrollLeft) {
+            console.log('displaySellTable - isLoggedIn:', isLoggedIn);
+            
+            // Store sell prices and profit rates globally for use in other functions
+            currentSellPrices = sellPrices;
+            currentProfitRates = profitRates;
+            
             // Get all unique currencies from both dictionaries
             const allCurrencies = new Set([
                 ...Object.keys(sellPrices),
                 ...Object.keys(profitRates)
             ]);
 
-            let html = `
-                <div class="table-container" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-                    <table class="data-table" style="font-size: 12px; width: 100%; min-width: 400px;">
-                        <thead>
-                            <tr style="padding: 6px 0;">
-                                <th style="padding: 6px 8px; width: 25%; min-width: 80px;">Currency</th>
-                                <th style="padding: 6px 8px; width: 25%; min-width: 80px;">Price</th>
-                                <th style="padding: 6px 8px; width: 25%; min-width: 80px;">Rate</th>
-                                <th style="padding: 6px 8px; width: 25%; min-width: 80px;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-
-            let rowIndex = 0;
-            allCurrencies.forEach(currency => {
-                const price = sellPrices[currency] || 0;
-                const rate = profitRates[currency] || 0;
-                const backgroundColor = rowIndex % 2 === 0 ? '#f8f9fa' : '#ffffff';
-                
-                html += `
-                    <tr style="cursor: pointer; padding: 4px 0; background-color: ${backgroundColor};">
-                        <td onclick="fillInputFields('${currency}', ${price}, ${rate})" style="padding: 4px 8px; width: 25%; min-width: 80px;"><strong>${currency}</strong></td>
-                        <td onclick="fillInputFields('${currency}', ${price}, ${rate})" style="padding: 4px 8px; width: 25%; min-width: 80px;">${price.toLocaleString()}</td>
-                        <td onclick="fillInputFields('${currency}', ${price}, ${rate})" style="padding: 4px 8px; width: 25%; min-width: 80px;">${rate.toFixed(2)}%</td>
-                        <td style="padding: 4px 8px; width: 25%; min-width: 80px;">
-                            <button onclick="deleteSellData('${currency}')" 
-                                    style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; min-height: 32px;"
-                                    onclick="event.stopPropagation();">
-                                Delete
+            // Convert to array and sort for consistent display
+            const currenciesArray = Array.from(allCurrencies).sort();
+            
+            let html = `<div class="sell-grid">`;
+            
+            // Create grid items for each currency
+            if (currenciesArray.length === 0) {
+                // Show empty state when no data
+                html += `<div class="sell-grid-item" style="grid-column: 1 / span 4; text-align: center; color: #666; padding: 10px;">
+                    No sell prices configured
+                </div>`;
+            } else {
+                currenciesArray.forEach(currency => {
+                    const price = sellPrices[currency] || 0;
+                    const rate = profitRates[currency] || 0;
+                    
+                    html += `
+                        <div class="sell-grid-item" onclick="fillInputFields('${currency}', ${price}, ${rate})">
+                            <div class="sell-currency">${currency}</div>
+                            <div class="sell-price">${price.toLocaleString()}</div>
+                            <div class="sell-rate">${rate.toFixed(2)}%</div>
+                            <button class="sell-delete-btn" onclick="deleteSellData('${currency}');event.stopPropagation();">
+                            Delete
                             </button>
-                        </td>
-                    </tr>
-                `;
-                rowIndex++;
-            });
+                        </div>`;
+                });
+            }
 
-            html += '</tbody></table></div>';
+            html += '</div>';
             container.innerHTML = html;
             
             // Restore scroll position
@@ -1082,10 +1692,117 @@
             document.getElementById('new-currency').value = currency;
             document.getElementById('new-sell-price').value = price;
             document.getElementById('new-profit-rate').value = rate;
+            
+            // Auto-select coin in dropdown
+            const coinSelect = document.getElementById('coin-select');
+            if (coinSelect) {
+                // Check if the option exists, if not create it
+                let optionExists = false;
+                for (let i = 0; i < coinSelect.options.length; i++) {
+                    if (coinSelect.options[i].value === currency) {
+                        optionExists = true;
+                        break;
+                    }
+                }
+                
+                if (!optionExists) {
+                    const newOption = document.createElement('option');
+                    newOption.value = currency;
+                    newOption.textContent = `${currency} / ${currency} (${currency})`;
+                    coinSelect.appendChild(newOption);
+                }
+                
+                coinSelect.value = currency;
+                updateChartButtonState();
+            }
         }
 
         function fillCurrencyField(currency) {
             document.getElementById('new-currency').value = currency;
+        }
+
+        // Fill input fields from asset data - only from sell table
+        function fillInputFieldsFromAsset(asset) {
+            document.getElementById('new-currency').value = asset.currency;
+            
+            // Only fill sell price from sell table, use 0 if not found
+            let sellPrice = '0';
+            if (currentSellPrices[asset.currency]) {
+                sellPrice = currentSellPrices[asset.currency];
+            }
+            document.getElementById('new-sell-price').value = sellPrice;
+            
+            // Only fill profit rate from sell table, use 0 if not found
+            let profitRate = '0';
+            if (currentProfitRates[asset.currency]) {
+                profitRate = currentProfitRates[asset.currency].toFixed(2);
+            }
+            document.getElementById('new-profit-rate').value = profitRate;
+            
+            // Auto-select coin in dropdown
+            const coinSelect = document.getElementById('coin-select');
+            if (coinSelect) {
+                // Check if the option exists, if not create it
+                let optionExists = false;
+                for (let i = 0; i < coinSelect.options.length; i++) {
+                    if (coinSelect.options[i].value === asset.currency) {
+                        optionExists = true;
+                        break;
+                    }
+                }
+                
+                if (!optionExists) {
+                    const newOption = document.createElement('option');
+                    newOption.value = asset.currency;
+                    newOption.textContent = `${asset.currency} / ${asset.currency} (${asset.currency})`;
+                    coinSelect.appendChild(newOption);
+                }
+                
+                coinSelect.value = asset.currency;
+                updateChartButtonState();
+            }
+        }
+
+        // Fill input fields from order data - only from sell table
+        function fillInputFieldsFromOrder(order) {
+            document.getElementById('new-currency').value = order.currency;
+            
+            // Only fill sell price from sell table, use 0 if not found
+            let sellPrice = '0';
+            if (currentSellPrices[order.currency]) {
+                sellPrice = currentSellPrices[order.currency];
+            }
+            document.getElementById('new-sell-price').value = sellPrice;
+            
+            // Only fill profit rate from sell table, use 0 if not found
+            let profitRate = '0';
+            if (currentProfitRates[order.currency]) {
+                profitRate = currentProfitRates[order.currency].toFixed(2);
+            }
+            document.getElementById('new-profit-rate').value = profitRate;
+            
+            // Auto-select coin in dropdown
+            const coinSelect = document.getElementById('coin-select');
+            if (coinSelect) {
+                // Check if the option exists, if not create it
+                let optionExists = false;
+                for (let i = 0; i < coinSelect.options.length; i++) {
+                    if (coinSelect.options[i].value === order.currency) {
+                        optionExists = true;
+                        break;
+                    }
+                }
+                
+                if (!optionExists) {
+                    const newOption = document.createElement('option');
+                    newOption.value = order.currency;
+                    newOption.textContent = `${order.currency} / ${order.currency} (${order.currency})`;
+                    coinSelect.appendChild(newOption);
+                }
+                
+                coinSelect.value = order.currency;
+                updateChartButtonState();
+            }
         }
 
         async function cancelOrder(uuid) {
