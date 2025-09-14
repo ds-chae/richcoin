@@ -2,3 +2,8 @@ Flask==2.3.3
 PyPDF2==3.0.1
 google-generativeai==0.3.2
 Werkzeug==2.3.7
+watchdog==3.0.0
+pywin32==306
+pyautogui==0.9.54
+keyboard==0.13.5
+uiautomation==2.0.15

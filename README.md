@@ -27,7 +27,6 @@
 ## 📋 요구사항
 
 - Python 3.7 이상
-- Anaconda 환경 (pytorch3d 환경 권장)
 - Bithumb API 접근 권한
 
 ## 🛠️ 설치 및 설정
@@ -38,9 +37,10 @@ git clone <repository-url>
 cd richcoin
 ```
 
-### 2. Anaconda 환경 활성화
+### 2. 가상환경 생성 및 활성화
 ```bash
-conda activate pytorch3d
+python -m venv venv
+venv\Scripts\activate
 ```
 
 ### 3. 의존성 설치
@@ -135,7 +135,7 @@ richcoin/
 
 ### 로컬 개발
 ```bash
-conda activate pytorch3d
+venv\Scripts\activate
 cd backend
 python listasset.py
 ```

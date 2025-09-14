@@ -1368,6 +1368,45 @@ def get_days(currency):
     return response.text
 
 
+@app.post("/ingest")
+async def ingest_text(request: Request):
+    """Receive text via POST and store it in ingest directory with timestamp filename"""
+    try:
+        # Get text from request body
+        text_content = await request.body()
+        text_content = text_content.decode('utf-8')
+        
+        # Create ingest directory if it doesn't exist
+        ingest_dir = "ingest"
+        if not os.path.exists(ingest_dir):
+            os.makedirs(ingest_dir)
+            print(f"Created directory: {ingest_dir}")
+        
+        # Generate timestamp filename (yyyymmdd-hhmmss)
+        now = datetime.now()
+        timestamp = now.strftime("%Y%m%d-%H%M%S")
+        filename = f"{timestamp}.txt"
+        filepath = os.path.join(ingest_dir, filename)
+        
+        # Write text content to file
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(text_content)
+        
+        print(f"Text stored in: {filepath}")
+        
+        return {
+            "status": "success",
+            "message": f"Text stored successfully",
+            "filename": filename,
+            "filepath": filepath,
+            "timestamp": timestamp
+        }
+        
+    except Exception as e:
+        print(f"Error storing text: {e}")
+        raise HTTPException(status_code=500, detail=f"Error storing text: {str(e)}")
+
+
 if __name__ == "__main__":
     # Load dictionaries from JSON files at startup
     load_dictionaries_from_json()
