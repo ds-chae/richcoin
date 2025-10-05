@@ -347,12 +347,15 @@ def get_assets():
     # print(response.json())
     assets = []
     if response.status_code == 200 :
+        print('get_assets finished')
         rj = response.json()
         for r in rj:
             asset = OneAsset(r)
             get_current_price(asset)
             assets.append(asset)
-
+            print(str(asset))
+    else:
+        print('get_assets failed')
     return assets
 
 
@@ -532,15 +535,19 @@ def different_orders(old_orders, orderlist):
     return False
 
 
+in_monitor_task = False
 t = 0
 def monitor_task():
     global t, old_assets, old_orders
+    global in_monitor_task
+
+    if in_monitor_task:
+        return
+    in_monitor_task = True
+
     assets = get_assets()
     assets.sort()
-    if different_assets(old_assets, assets) or (t % 10) == 0 :
-        for asset in assets:
-            print_asset(asset)
-        old_assets = assets
+    old_assets = assets
 
     # 주문조회
     orderlist = []
@@ -557,12 +564,12 @@ def monitor_task():
     cancel_count = sell_balance(assets, orderlist)
 
     t += 1
-
+    in_monitor_task = False
 
 
 # 백그라운드 스케줄러 설정
 scheduler = BackgroundScheduler()
-scheduler.add_job(monitor_task, 'interval', seconds=1.5)  # 매 5초마다 실행
+scheduler.add_job(monitor_task, 'interval', seconds=2.0)  # 매 5초마다 실행
 scheduler.start()
 
 def remove_bracing_tags(html_content, str_to_find, open_tag, close_tag) : # 'class="sell-inputs"', '<div', '</div>'

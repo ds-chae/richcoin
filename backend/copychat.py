@@ -1,7 +1,7 @@
 import os
 import json
 import time
-from send_to_cursor import find_and_paste
+import send_to_cursor
 
 
 class IngestFileHandler:
@@ -23,6 +23,7 @@ class IngestFileHandler:
                     print(e)
     
     def process_file(self, file_path):
+        start_time = time.time()
         """Process a new ingest file and paste text to Cursor AI"""
         try:
             # Read the JSON file
@@ -43,7 +44,9 @@ class IngestFileHandler:
             print(f"Extracted text: {text_to_paste[:100]}...")
             
             # Find Cursor AI window and paste text
+            start_time = time.time()
             if self.paste_to_cursor(text_to_paste):
+                send_to_cursor.print_elapsed_time('paste_to_cursor()', start_time)
                 print("Text successfully pasted to Cursor AI")
                 # Rename file to .old to mark as processed
                 self.mark_file_as_processed(file_path)
@@ -66,16 +69,16 @@ class IngestFileHandler:
     def paste_to_cursor(self, text):
         """Paste text to Cursor AI window using external function"""
         try:
-            return find_and_paste(text)
+            return send_to_cursor.find_and_paste(text)
         except Exception as e:
             print(f"Error pasting to Cursor AI: {e}")
             return False
 
 
-def monitor_ingest_directory():
+def monitor_ingest_directory(period):
     """Start monitoring the ingest directory with periodic polling"""
     ingest_dir = "ingest"
-    
+
     # Create ingest directory if it doesn't exist
     if not os.path.exists(ingest_dir):
         os.makedirs(ingest_dir)
@@ -85,13 +88,13 @@ def monitor_ingest_directory():
     handler = IngestFileHandler()
     
     print(f"Starting to monitor directory: {os.path.abspath(ingest_dir)}")
-    print("Checking for new files every 1 second...")
+    print("Checking for new files every {} second...".format(period))
     print("Press Ctrl+C to stop monitoring...")
     
     try:
         while True:
             handler.check_for_new_files()
-            time.sleep(0.2)  # Check every 1 second
+            time.sleep(period)  # Check every 1 second
     except KeyboardInterrupt:
         print("\nStopping monitor...")
 
@@ -111,11 +114,12 @@ def process_existing_files():
 
 
 if __name__ == "__main__":
+    period = 0.2
     print("=== Cursor AI Auto-Paste Monitor ===")
     print("This script monitors the ingest directory for new JSON files")
     print("and automatically pastes the 'text' field to Cursor AI")
-    print("Using periodic polling every 1 second...")
+    print("Using periodic polling every {} second...".format(period))
     print()
     
     # Start monitoring for new files
-    monitor_ingest_directory()
+    monitor_ingest_directory(period)
