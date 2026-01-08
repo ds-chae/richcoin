@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{coin} Chart - SojuCoin</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .controls {
+            background: white;
+            border-radius: 3px;
+            padding: 15px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+
+        select, input[type="radio"] {
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+
+        select {
+            min-width: 120px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 3px;
+            padding: 20px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            margin-bottom: 20px;
+        }
+
+        .volume-chart-wrapper {
+            position: relative;
+            height: 150px;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            color: #666;
+            font-size: 1.2rem;
+        }
+
+        .error {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            color: #dc3545;
+            font-size: 1.2rem;
+        }
+
+        .back-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .back-btn:hover {
+            background: #5a6fd8;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .container {
+                padding: 8px;
+            }
+
+            .header h1 {
+                font-size: 1.6rem;
+            }
+
+            .controls {
+                padding: 12px;
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .control-group {
+                justify-content: space-between;
+            }
+
+            .chart-container {
+                padding: 15px;
+            }
+
+            .chart-wrapper {
+                height: 300px;
+            }
+
+            .volume-chart-wrapper {
+                height: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 {coin} Chart</h1>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="currency-select">Currency:</label>
+                <select id="currency-select">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Time Period:</label>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="period-5min" name="period" value="5">
+                        <label for="period-5min">5min</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="period-15min" name="period" value="15">
+                        <label for="period-15min">15min</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="period-1day" name="period" value="day" checked>
+                        <label for="period-1day">1day</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-wrapper">
+                <canvas id="priceChart"></canvas>
+            </div>
+            <div class="volume-chart-wrapper">
+                <canvas id="volumeChart"></canvas>
+            </div>
+        </div>
+
+        <a href="javascript:if(window.opener){window.close();}else{window.location.href='/'}" class="back-btn">← Back to Dashboard</a>
+    </div>
+
+    <script>
+        let priceChart = null;
+        let volumeChart = null;
+        let currentCurrency = '{coin}';
+        let currentPeriod = 'day';
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCoinList();
+            setupEventListeners();
+            // Load daily chart data if currency is available
+            if (currentCurrency) {
+                loadChartData();
+            }
+        });
+
+        // Load coin list for currency selection
+        async function loadCoinList() {
+            const selectElement = document.getElementById('currency-select');
+            selectElement.innerHTML = '';
+            
+            // Add default option
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Select a coin...';
+            selectElement.appendChild(defaultOption);
+            
+            try {
+                const response = await fetch('/coinlist');
+                const coinlist = await response.json();
+                
+                // Add coin options from API
+                coinlist.forEach(coin => {
+                    const option = document.createElement('option');
+                    option.value = coin.symbol;
+                    option.textContent = `${coin.name_en} / ${coin.name_kr} (${coin.symbol})`;
+                    if (coin.symbol === currentCurrency) {
+                        option.selected = true;
+                    }
+                    selectElement.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading coin list from API:', error);
+                selectElement.innerHTML = '<option value="">Backend server not running - Please start the server</option>';
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('currency-select').addEventListener('change', function() {
+                currentCurrency = this.value;
+                if (currentCurrency) {
+                    loadChartData();
+                } else {
+                    // Clear charts if no coin selected
+                    clearCharts();
+                }
+            });
+
+            document.querySelectorAll('input[name="period"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    currentPeriod = this.value;
+                    if (currentCurrency) {
+                        loadChartData();
+                    }
+                });
+            });
+        }
+
+        // Clear charts when no coin is selected
+        function clearCharts() {
+            const chartContainer = document.querySelector('.chart-wrapper');
+            chartContainer.innerHTML = '<canvas id="priceChart"></canvas>';
+            
+            const volumeContainer = document.querySelector('.volume-chart-wrapper');
+            volumeContainer.innerHTML = '<canvas id="volumeChart"></canvas>';
+            
+            if (priceChart) {
+                priceChart.destroy();
+                priceChart = null;
+            }
+            if (volumeChart) {
+                volumeChart.destroy();
+                volumeChart = null;
+            }
+        }
+
+        // Load chart data from API
+        async function loadChartData() {
+            if (!currentCurrency) return;
+
+            const chartContainer = document.querySelector('.chart-wrapper');
+            const volumeContainer = document.querySelector('.volume-chart-wrapper');
+            
+            // Show loading message
+            chartContainer.innerHTML = '<div class="loading">Loading chart data...</div>';
+            volumeContainer.innerHTML = '<div class="loading">Loading volume data...</div>';
+
+            try {
+                let url, response, data;
+                
+                if (currentPeriod === 'day') {
+                    url = `/chart-data/days/${currentCurrency}`;
+                    console.log('Fetching daily data from:', url);
+                    response = await fetch(url);
+                } else {
+                    url = `/chart-data/minutes/${currentCurrency}?unit=${currentPeriod}`;
+                    console.log('Fetching minute data from:', url);
+                    response = await fetch(url);
+                }
+
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error:', errorText);
+                    throw new Error(`API Error: ${response.status} - ${errorText}`);
+                }
+
+                data = await response.json();
+                console.log('Received data:', data);
+                console.log('Data type:', typeof data);
+                console.log('Data length:', Array.isArray(data) ? data.length : 'Not an array');
+
+                if (data && Array.isArray(data) && data.length > 0) {
+                    // Restore canvas elements before processing data
+                    chartContainer.innerHTML = '<canvas id="priceChart"></canvas>';
+                    volumeContainer.innerHTML = '<canvas id="volumeChart"></canvas>';
+                    
+                    processAndDrawChart(data);
+                } else {
+                    throw new Error('No data received or data is not in expected format');
+                }
+            } catch (error) {
+                console.error('Error loading chart data:', error);
+                chartContainer.innerHTML = `<div class="error">Error loading chart data: ${error.message}</div>`;
+            }
+        }
+
+        // Process API data and draw charts
+        function processAndDrawChart(data) {
+            // Check if chart containers exist
+            const priceCanvas = document.getElementById('priceChart');
+            const volumeCanvas = document.getElementById('volumeChart');
+            
+            if (!priceCanvas || !volumeCanvas) {
+                console.error('Chart canvases not found in DOM');
+                return;
+            }
+            
+            console.log('Processing chart data:', data);
+            console.log('First data item:', data[0]);
+            
+            // Sort data by timestamp (oldest first)
+            data.sort((a, b) => new Date(a.candle_date_time_kst) - new Date(b.candle_date_time_kst));
+
+            const labels = data.map(item => new Date(item.candle_date_time_kst));
+            const priceData = data.map(item => ({
+                x: new Date(item.candle_date_time_kst),
+                o: parseFloat(item.opening_price),
+                h: parseFloat(item.high_price),
+                l: parseFloat(item.low_price),
+                c: parseFloat(item.trade_price)
+            }));
+            const volumeData = data.map(item => ({
+                x: new Date(item.candle_date_time_kst),
+                y: parseFloat(item.candle_acc_trade_volume)
+            }));
+
+            console.log('Processed price data:', priceData.slice(0, 3));
+            console.log('Processed volume data:', volumeData.slice(0, 3));
+            console.log('Labels:', labels.slice(0, 3));
+
+            drawPriceChart(labels, priceData);
+            drawVolumeChart(labels, volumeData);
+        }
+
+        // Draw price chart (candlestick)
+        function drawPriceChart(labels, data) {
+            const canvas = document.getElementById('priceChart');
+            if (!canvas) {
+                console.error('Price chart canvas not found');
+                return;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            
+            if (priceChart) {
+                priceChart.destroy();
+            }
+
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Price',
+                        data: data.map(item => item.c),
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                displayFormats: {
+                                    minute: 'HH:mm',
+                                    hour: 'MM/dd HH:mm',
+                                    day: 'MM/dd'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Price (KRW)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Price: ${context.parsed.y.toLocaleString()} KRW`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Draw volume chart
+        function drawVolumeChart(labels, data) {
+            const canvas = document.getElementById('volumeChart');
+            if (!canvas) {
+                console.error('Volume chart canvas not found');
+                return;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            
+            if (volumeChart) {
+                volumeChart.destroy();
+            }
+
+            volumeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Volume',
+                        data: data.map(item => item.y),
+                        backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                        borderColor: '#667eea',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                displayFormats: {
+                                    minute: 'HH:mm',
+                                    hour: 'MM/dd HH:mm',
+                                    day: 'MM/dd'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Volume'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Volume: ${context.parsed.y.toLocaleString()}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
