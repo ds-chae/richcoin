@@ -663,21 +663,12 @@ async def root_page(request: Request, token: str = Cookie(None)):
                 # Remove port 8003 from API base URL when coming through nginx
                 html_content = html_content.replace(':8003', '')
             
-            # Add Stock button to header (top right corner, before logout/login button)
-            stock_button = '<a href="/stock" class="stock-btn" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold; text-decoration: none; margin-right: 10px; display: inline-block; min-width: 80px; min-height: 44px; text-align: center; line-height: 28px;">📈 Stock</a>'
-            
             # If not authenticated, add login button and hide logout button
             if not auth_status["authenticated"]:
-                # Add login button to header (with stock button before it)
+                # Add login button to header
                 html_content = html_content.replace(
                     '<button onclick="logout()" class="logout-btn">🚪 Logout</button>',
-                    stock_button + '<button onclick="showLoginModal()" class="login-btn" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold;">🔑 Login</button>'
-                )
-            else:
-                # Add stock button before logout button (authenticated state)
-                html_content = html_content.replace(
-                    '<button onclick="logout()" class="logout-btn">🚪 Logout</button>',
-                    stock_button + '<button onclick="logout()" class="logout-btn">🚪 Logout</button>'
+                    '<button onclick="showLoginModal()" class="login-btn" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold;">🔑 Login</button>'
                 )
                 
                 # Remove delete buttons from sell table (price section)
@@ -1474,7 +1465,105 @@ async def ingest_text(request: Request):
         raise HTTPException(status_code=500, detail=f"Error storing text: {str(e)}")
 
 
+def get_coinlist_sync():
+    """Synchronous version of get_coinlist for use in main block"""
+    # Sample coin data as fallback
+    fallback_coinlist = [
+        {"symbol": "BTC", "name_en": "Bitcoin", "name_kr": "비트코인"},
+        {"symbol": "ETH", "name_en": "Ethereum", "name_kr": "이더리움"},
+        {"symbol": "XRP", "name_en": "Ripple", "name_kr": "리플"},
+        {"symbol": "ADA", "name_en": "Cardano", "name_kr": "카르다노"},
+        {"symbol": "DOT", "name_en": "Polkadot", "name_kr": "폴카닷"},
+        {"symbol": "LINK", "name_en": "Chainlink", "name_kr": "체인링크"},
+        {"symbol": "LTC", "name_en": "Litecoin", "name_kr": "라이트코인"},
+        {"symbol": "BCH", "name_en": "Bitcoin Cash", "name_kr": "비트코인 캐시"},
+        {"symbol": "EOS", "name_en": "EOS", "name_kr": "이오스"},
+        {"symbol": "TRX", "name_en": "TRON", "name_kr": "트론"},
+        {"symbol": "XLM", "name_en": "Stellar", "name_kr": "스텔라"},
+        {"symbol": "VET", "name_en": "VeChain", "name_kr": "비체인"},
+        {"symbol": "FIL", "name_en": "Filecoin", "name_kr": "파일코인"},
+        {"symbol": "THETA", "name_en": "Theta", "name_kr": "쎄타"},
+        {"symbol": "AAVE", "name_en": "Aave", "name_kr": "아베"},
+        {"symbol": "SUSHI", "name_en": "SushiSwap", "name_kr": "스시스왑"},
+        {"symbol": "SNX", "name_en": "Synthetix", "name_kr": "신세틱스"},
+        {"symbol": "YFI", "name_en": "Yearn Finance", "name_kr": "이어n 파이낸스"},
+        {"symbol": "COMP", "name_en": "Compound", "name_kr": "컴파운드"},
+        {"symbol": "MKR", "name_en": "Maker", "name_kr": "메이커"}
+    ]
+
+    try:
+        # Try to fetch from Bithumb API
+        url = "https://api.bithumb.com/v1/market/all?isDetails=false"
+        headers = {"accept": "application/json"}
+        
+        response = safe_request(url, headers=headers, timeout=10)
+        response.raise_for_status()  # Raise an exception for bad status codes
+        
+        coinjson = json.loads(response.text)
+        coinlist = []
+        
+        for j in coinjson:
+            try:
+                market = j['market'][4:]  # Remove 'KRW-' prefix
+                k_name = j['korean_name']
+                e_name = j['english_name']
+                coinlist.append({"symbol": market, "name_en": e_name, "name_kr": k_name})
+            except (KeyError, IndexError) as e:
+                print(f"Error processing coin data: {e}")
+                continue
+        
+        # Return API data if we got any coins, otherwise fallback
+        if coinlist:
+            return coinlist
+        else:
+            print("No coins from API, using fallback data")
+            return fallback_coinlist
+            
+    except Exception as e:
+        print(f"Error fetching coin list from API: {e}")
+        return fallback_coinlist
+
+
+def save_daily_price(coin):
+    """Save daily price data for a coin to coindata folder"""
+    try:
+        # Get coin symbol
+        symbol = coin.get('symbol', '')
+        if not symbol:
+            print(f"Error: Coin object missing symbol: {coin}")
+            return
+        
+        # Fetch daily price data
+        url = f"https://api.bithumb.com/v1/candles/days?market=KRW-{symbol}&count=200"
+        headers = {"accept": "application/json"}
+        
+        response = safe_request(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        data = response.json()
+        
+        # Create coindata directory if it doesn't exist
+        coindata_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'coindata')
+        if not os.path.exists(coindata_dir):
+            os.makedirs(coindata_dir)
+            print(f"Created directory: {coindata_dir}")
+        
+        # Save data to file with coin symbol as filename
+        filename = f"{symbol}.json"
+        filepath = os.path.join(coindata_dir, filename)
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        
+        print(f"Saved daily price data for {symbol} to {filepath}")
+        
+    except Exception as e:
+        print(f"Error saving daily price for {coin.get('symbol', 'unknown')}: {e}")
+
+
 if __name__ == "__main__":
     # Load dictionaries from JSON files at startup
     load_dictionaries_from_json()
-    uvicorn.run(app, host="0.0.0.0", port=8003, log_level="error")
+    coinlist = get_coinlist_sync()
+    for coin in coinlist:
+        save_daily_price(coin)
