@@ -1959,14 +1959,14 @@
                     }
                     
                     // Always clear cookie and redirect regardless of response
-                    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                    document.cookie = "ctoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                     isLoggedIn = false;
                     window.location.href = `${API_BASE}/`;
                     
                 } catch (error) {
                     console.error('Logout error:', error);
                     // Even if the logout request fails, clear the cookie and redirect
-                    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                    document.cookie = "ctoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                     isLoggedIn = false;
                     alert('Logged out (local cleanup completed)');
                     window.location.href = `${API_BASE}/`;

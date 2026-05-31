@@ -646,11 +646,11 @@ def remove_bracing_tags(html_content, str_to_find, open_tag, close_tag) : # 'cla
 
 # FastAPI Endpoints
 @app.get("/", response_class=HTMLResponse)
-async def root_page(request: Request, token: str = Cookie(None)):
+async def root_page(request: Request, ctoken: str = Cookie(None)):
     """Root endpoint that returns the HTML dashboard with login button if not authenticated - ROOT ENDPOINT"""
     try:
         # Check authentication status
-        auth_status = check_auth_status(token)
+        auth_status = check_auth_status(ctoken)
         
         # Read index.html
         index_path = os.path.dirname(os.path.abspath(__file__)) + '/../index.html'
@@ -666,13 +666,97 @@ async def root_page(request: Request, token: str = Cookie(None)):
             # Add Stock button to header (top right corner, before logout/login button)
             stock_button = '<a href="/stock" class="stock-btn" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold; text-decoration: none; margin-right: 10px; display: inline-block; min-width: 80px; min-height: 44px; text-align: center; line-height: 28px;">📈 Stock</a>'
             
-            # If not authenticated, add login button and hide logout button
+            # Login modal and script (required for the Login button in non-authenticated mode)
+            login_modal = '''
+            <div id="loginModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+                <div style="background-color: white; margin: 15% auto; padding: 20px; border-radius: 10px; width: 80%; max-width: 400px;">
+                    <h2 style="text-align: center; margin-bottom: 20px;">🍶 SojuCoin Login</h2>
+                    <form id="loginForm">
+                        <div style="margin-bottom: 15px;">
+                            <label for="username" style="display: block; margin-bottom: 5px; font-weight: bold;">Username:</label>
+                            <input type="text" id="username" name="username" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label for="password" style="display: block; margin-bottom: 5px; font-weight: bold;">Password:</label>
+                            <input type="password" id="password" name="password" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                        </div>
+                        <div style="text-align: center;">
+                            <button type="submit" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-right: 10px;">Login</button>
+                            <button type="button" onclick="hideLoginModal()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Cancel</button>
+                        </div>
+                    </form>
+                    <div id="loginMessage" style="margin-top: 15px; text-align: center; display: none;"></div>
+                </div>
+            </div>
+            '''
+
+            login_script = '''
+            <script>
+                function showLoginModal() {
+                    document.getElementById('loginModal').style.display = 'block';
+                }
+
+                function hideLoginModal() {
+                    document.getElementById('loginModal').style.display = 'none';
+                    document.getElementById('loginMessage').style.display = 'none';
+                }
+
+                document.getElementById('loginForm').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    const username = document.getElementById('username').value;
+                    const password = document.getElementById('password').value;
+                    const messageDiv = document.getElementById('loginMessage');
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('username', username);
+                        formData.append('password', password);
+
+                        const response = await fetch('/login', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            messageDiv.textContent = 'Login successful! Refreshing page...';
+                            messageDiv.style.color = '#28a745';
+                            messageDiv.style.display = 'block';
+
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        } else {
+                            const errorData = await response.json();
+                            messageDiv.textContent = errorData.detail || 'Login failed';
+                            messageDiv.style.color = '#dc3545';
+                            messageDiv.style.display = 'block';
+                        }
+                    } catch (error) {
+                        messageDiv.textContent = 'Network error. Please try again.';
+                        messageDiv.style.color = '#dc3545';
+                        messageDiv.style.display = 'block';
+                    }
+                });
+
+                // Close modal when clicking outside
+                window.onclick = function(event) {
+                    const modal = document.getElementById('loginModal');
+                    if (event.target === modal) {
+                        hideLoginModal();
+                    }
+                }
+            </script>
+            '''
+
+            # If not authenticated, add login button and login modal
             if not auth_status["authenticated"]:
                 # Add login button to header (with stock button before it)
                 html_content = html_content.replace(
                     '<button onclick="logout()" class="logout-btn">🚪 Logout</button>',
                     stock_button + '<button onclick="showLoginModal()" class="login-btn" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold;">🔑 Login</button>'
                 )
+                html_content = html_content.replace('</body>', login_modal + login_script + '</body>')
             else:
                 # Add stock button before logout button (authenticated state)
                 html_content = html_content.replace(
@@ -692,91 +776,7 @@ async def root_page(request: Request, token: str = Cookie(None)):
                 # Remove cancel buttons from orders table
                 html_content = remove_bracing_tags(html_content, 'onclick="cancelOrder', '<button', '</button>')
 
-                # Add login modal HTML before closing body tag
-                login_modal = '''
-                <div id="loginModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
-                    <div style="background-color: white; margin: 15% auto; padding: 20px; border-radius: 10px; width: 80%; max-width: 400px;">
-                        <h2 style="text-align: center; margin-bottom: 20px;">🍶 SojuCoin Login</h2>
-                        <form id="loginForm">
-                            <div style="margin-bottom: 15px;">
-                                <label for="username" style="display: block; margin-bottom: 5px; font-weight: bold;">Username:</label>
-                                <input type="text" id="username" name="username" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
-                            </div>
-                            <div style="margin-bottom: 20px;">
-                                <label for="password" style="display: block; margin-bottom: 5px; font-weight: bold;">Password:</label>
-                                <input type="password" id="password" name="password" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
-                            </div>
-                            <div style="text-align: center;">
-                                <button type="submit" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-right: 10px;">Login</button>
-                                <button type="button" onclick="hideLoginModal()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Cancel</button>
-                            </div>
-                        </form>
-                        <div id="loginMessage" style="margin-top: 15px; text-align: center; display: none;"></div>
-                    </div>
-                </div>
-                '''
-                
-                # Add login modal JavaScript before closing body tag
-                login_script = '''
-                <script>
-                    function showLoginModal() {
-                        document.getElementById('loginModal').style.display = 'block';
-                    }
-                    
-                    function hideLoginModal() {
-                        document.getElementById('loginModal').style.display = 'none';
-                        document.getElementById('loginMessage').style.display = 'none';
-                    }
-                    
-                    document.getElementById('loginForm').addEventListener('submit', async function(e) {
-                        e.preventDefault();
-                        
-                        const username = document.getElementById('username').value;
-                        const password = document.getElementById('password').value;
-                        const messageDiv = document.getElementById('loginMessage');
-                        
-                        try {
-                            const formData = new FormData();
-                            formData.append('username', username);
-                            formData.append('password', password);
-                            
-                            const response = await fetch('/login', {
-                                method: 'POST',
-                                body: formData
-                            });
-                            
-                            if (response.ok) {
-                                messageDiv.textContent = 'Login successful! Refreshing page...';
-                                messageDiv.style.color = '#28a745';
-                                messageDiv.style.display = 'block';
-                                
-                                setTimeout(() => {
-                                    window.location.reload();
-                                }, 1000);
-                            } else {
-                                const errorData = await response.json();
-                                messageDiv.textContent = errorData.detail || 'Login failed';
-                                messageDiv.style.color = '#dc3545';
-                                messageDiv.style.display = 'block';
-                            }
-                        } catch (error) {
-                            messageDiv.textContent = 'Network error. Please try again.';
-                            messageDiv.style.color = '#dc3545';
-                            messageDiv.style.display = 'block';
-                        }
-                    });
-                    
-                    // Close modal when clicking outside
-                    window.onclick = function(event) {
-                        const modal = document.getElementById('loginModal');
-                        if (event.target === modal) {
-                            hideLoginModal();
-                        }
-                    }
-                </script>
-                '''
-                
-                # Insert modal and script before closing body tag
+                # Keep login modal functions available in authenticated mode too.
                 html_content = html_content.replace('</body>', login_modal + login_script + '</body>')
             
             return HTMLResponse(html_content)
@@ -835,7 +835,7 @@ async def login(username: str = Form(...), password: str = Form(...)):
         # Set the token as a cookie with 7 days expiration
         response = Response(content=f"Login successful! Token: {token}")
         response.set_cookie(
-            key="token", 
+            key="ctoken", 
             value=token, 
             httponly=True, 
             max_age=7*24*60*60,  # 7 days in seconds
@@ -849,14 +849,14 @@ async def login(username: str = Form(...), password: str = Form(...)):
 
 
 @app.post("/refresh-token")
-async def refresh_token(token: str = Cookie(None)):
+async def refresh_token(ctoken: str = Cookie(None)):
     """Refresh token endpoint to extend session without requiring re-login"""
-    if not token:
+    if not ctoken:
         raise HTTPException(status_code=401, detail="No token provided")
     
     try:
         # Decode the current token
-        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
         
         if username != sys_username:
@@ -873,7 +873,7 @@ async def refresh_token(token: str = Cookie(None)):
         response = Response(content='{"success": true, "message": "Token refreshed successfully"}')
         response.headers['Content-Type'] = 'application/json'
         response.set_cookie(
-            key="token", 
+            key="ctoken", 
             value=new_token, 
             httponly=True, 
             max_age=7*24*60*60,  # 7 days in seconds
@@ -896,7 +896,7 @@ async def logout():
     response.headers['Content-Type'] = 'application/json'
     # Clear the authentication cookie by setting it to expire and empty value
     response.set_cookie(
-        key="token", 
+        key="ctoken", 
         value="", 
         expires=0, 
         httponly=True, 
@@ -907,16 +907,16 @@ async def logout():
     return response
 
 
-def check_auth_status(token: str = None) -> dict:
+def check_auth_status(ctoken: str = None) -> dict:
     """Check authentication status and return user info"""
-    if not token or token.strip() == "":
+    if not ctoken or ctoken.strip() == "":
         return {"authenticated": False, "username": None}
     
     try:
-        if len(token.strip()) < 10:  # Basic length check for JWT
+        if len(ctoken.strip()) < 10:  # Basic length check for JWT
             return {"authenticated": False, "username": None}
             
-        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
         
         if username and username == sys_username:
@@ -978,13 +978,13 @@ async def get_orders_api():
 
 
 @app.post("/sell-order")
-async def create_sell_order(request: SellOrderRequest, token: str = Cookie(None)):
+async def create_sell_order(request: SellOrderRequest, ctoken: str = Cookie(None)):
     """Create a sell order"""
-    if not token:
+    if not ctoken:
         raise HTTPException(status_code=401, detail="Authentication required")
     
     try:
-        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
         if username != "admin":
             raise HTTPException(status_code=403, detail="Unauthorized user")
@@ -1004,13 +1004,13 @@ async def create_sell_order(request: SellOrderRequest, token: str = Cookie(None)
 
 
 @app.post("/cancel-order")
-async def async_cancel_order(request: dict, token: str = Cookie(None)):
+async def async_cancel_order(request: dict, ctoken: str = Cookie(None)):
     """Cancel an order by UUID"""
-    if not token:
+    if not ctoken:
         raise HTTPException(status_code=401, detail="Authentication required")
     
     try:
-        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
         if username != "admin":
             raise HTTPException(status_code=403, detail="Unauthorized user")
@@ -1038,13 +1038,13 @@ async def async_cancel_order(request: dict, token: str = Cookie(None)):
 
 
 @app.get("/sell-price/{currency}")
-async def get_sell_price_api(currency: str, avg_buy_price: float, token: str = Cookie(None)):
+async def get_sell_price_api(currency: str, avg_buy_price: float, ctoken: str = Cookie(None)):
     """Get sell price for a currency"""
-    if not token:
+    if not ctoken:
         raise HTTPException(status_code=401, detail="Authentication required")
     
     try:
-        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
         if username != "admin":
             raise HTTPException(status_code=403, detail="Unauthorized user")
@@ -1058,13 +1058,13 @@ async def get_sell_price_api(currency: str, avg_buy_price: float, token: str = C
 
 
 @app.post("/submit-old-assets")
-async def submit_old_assets(request: SubmitOldAssetsRequest, token: str = Cookie(None)):
+async def submit_old_assets(request: SubmitOldAssetsRequest, ctoken: str = Cookie(None)):
     """Submit multiple old asset updates at once"""
-    if not token:
+    if not ctoken:
         raise HTTPException(status_code=401, detail="Authentication required")
     
     try:
-        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
         if username != "admin":
             raise HTTPException(status_code=403, detail="Unauthorized user")
@@ -1100,13 +1100,13 @@ async def submit_old_assets(request: SubmitOldAssetsRequest, token: str = Cookie
 
 
 @app.post("/add-old-asset")
-async def add_old_asset(request: AddOldAssetRequest, token: str = Cookie(None)):
+async def add_old_asset(request: AddOldAssetRequest, ctoken: str = Cookie(None)):
     """Add a new old asset to the list"""
-    if not token:
+    if not ctoken:
         raise HTTPException(status_code=401, detail="Authentication required")
     
     try:
-        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
         if username != "admin":
             raise HTTPException(status_code=403, detail="Unauthorized user")
@@ -1120,13 +1120,13 @@ async def add_old_asset(request: AddOldAssetRequest, token: str = Cookie(None)):
 
 
 @app.post("/add-old-order")
-async def add_old_order(request: AddOldOrderRequest, token: str = Cookie(None)):
+async def add_old_order(request: AddOldOrderRequest, ctoken: str = Cookie(None)):
     """Add a new old order to the list"""
-    if not token:
+    if not ctoken:
         raise HTTPException(status_code=401, detail="Authentication required")
     
     try:
-        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
         if username != "admin":
             raise HTTPException(status_code=403, detail="Unauthorized user")
@@ -1152,13 +1152,13 @@ async def get_profit_rates():
 
 
 @app.get("/auto-sell")
-async def get_auto_sell(token: str = Cookie(None)):
+async def get_auto_sell(ctoken: str = Cookie(None)):
     """Get the current auto_sell status"""
-    if not token:
+    if not ctoken:
         raise HTTPException(status_code=401, detail="No token provided")
     
     try:
-        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
         if username != sys_username:
             raise HTTPException(status_code=403, detail="Unauthorized user")
@@ -1170,15 +1170,15 @@ async def get_auto_sell(token: str = Cookie(None)):
     return {"auto_sell": auto_sell}
 
 @app.post("/toggle-auto-sell")
-async def toggle_auto_sell(token: str = Cookie(None)):
+async def toggle_auto_sell(ctoken: str = Cookie(None)):
     """Toggle the auto_sell status"""
     global auto_sell
     
-    if not token:
+    if not ctoken:
         raise HTTPException(status_code=401, detail="No token provided")
     
     try:
-        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
         if username != sys_username:
             raise HTTPException(status_code=403, detail="Unauthorized user")
@@ -1192,13 +1192,13 @@ async def toggle_auto_sell(token: str = Cookie(None)):
     return {"auto_sell": auto_sell, "success": True}
 
 @app.post("/update-sell-price")
-async def update_sell_price(request: dict, token: str = Cookie(None)):
+async def update_sell_price(request: dict, ctoken: str = Cookie(None)):
     """Update sell price and profit rate for a currency"""
-    if not token:
+    if not ctoken:
         raise HTTPException(status_code=401, detail="Authentication required")
     
     try:
-        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
         if username != "admin":
             raise HTTPException(status_code=403, detail="Unauthorized user")
@@ -1242,13 +1242,13 @@ async def update_sell_price(request: dict, token: str = Cookie(None)):
 
 
 @app.post("/delete-sell-data")
-async def delete_sell_data(request: dict, token: str = Cookie(None)):
+async def delete_sell_data(request: dict, ctoken: str = Cookie(None)):
     """Delete sell price and profit rate for a currency"""
-    if not token:
+    if not ctoken:
         raise HTTPException(status_code=401, detail="Authentication required")
     
     try:
-        payload = jwt.decode(token, secretKey, algorithms=["HS256"])
+        payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
         if username != "admin":
             raise HTTPException(status_code=403, detail="Unauthorized user")
