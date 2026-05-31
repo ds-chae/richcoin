@@ -1563,6 +1563,25 @@
             const currency = document.getElementById('new-currency').value;
             const price = document.getElementById('new-sell-price').value;
             const rate = document.getElementById('new-profit-rate').value;
+            const payload = {
+                currency: currency,
+                price: price === '' ? 0 : parseFloat(price),
+                rate: rate === '' ? 0 : parseFloat(rate)
+            };
+
+            async function readErrorMessage(response, fallbackMessage) {
+                try {
+                    const contentType = response.headers.get('content-type') || '';
+                    if (contentType.includes('application/json')) {
+                        const errorData = await response.json();
+                        return errorData.detail || errorData.error || errorData.message || fallbackMessage;
+                    }
+                    const text = await response.text();
+                    return text || fallbackMessage;
+                } catch (e) {
+                    return fallbackMessage;
+                }
+            }
 
             if (!currency) {
                 alert('Please enter a currency.');
@@ -1576,11 +1595,7 @@
                         'Content-Type': 'application/json'
                     },
                     credentials: 'include',
-                    body: JSON.stringify({
-                        currency: currency,
-                        price: price === '' ? 0 : parseFloat(price),
-                        rate: rate === '' ? 0 : parseFloat(rate)
-                    })
+                    body: JSON.stringify(payload)
                 });
                 
                 // Handle authentication errors
@@ -1593,11 +1608,7 @@
                                 'Content-Type': 'application/json'
                             },
                             credentials: 'include',
-                            body: JSON.stringify({
-                                currency: currency,
-                                price: price === '' ? 0 : parseFloat(price),
-                                rate: rate === '' ? 0 : parseFloat(rate)
-                            })
+                            body: JSON.stringify(payload)
                         });
                         if (retryResponse.ok) {
                             const data = await retryResponse.json();
@@ -1605,14 +1616,22 @@
                                 alert('Sell price updated successfully!');
                                 loadSellTable(); // Refresh the table to show updated data
                             } else {
-                                alert(`Error updating sell price: ${data.error}`);
+                                const message = data.error || data.detail || data.message || 'Unknown error';
+                                alert(`Error updating sell price: ${message}`);
                             }
                         } else {
-                            alert('Error updating sell price: Authentication failed');
+                            const message = await readErrorMessage(retryResponse, 'Authentication failed');
+                            alert(`Error updating sell price: ${message}`);
                         }
                     } else {
                         alert('Error updating sell price: Authentication failed');
                     }
+                    return;
+                }
+
+                if (!response.ok) {
+                    const message = await readErrorMessage(response, `${response.status} ${response.statusText}`);
+                    alert(`Error updating sell price: ${message}`);
                     return;
                 }
                 
@@ -1622,7 +1641,8 @@
                     alert('Sell price updated successfully!');
                     loadSellTable(); // Refresh the table to show updated data
                 } else {
-                    alert(`Error updating sell price: ${data.error}`);
+                    const message = data.error || data.detail || data.message || 'Unknown error';
+                    alert(`Error updating sell price: ${message}`);
                 }
             } catch (error) {
                 alert(`Error updating sell price: ${error.message}`);

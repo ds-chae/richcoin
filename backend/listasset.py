@@ -770,8 +770,7 @@ async def root_page(request: Request, ctoken: str = Cookie(None)):
                 # Remove auto button from sell table
                 html_content = remove_bracing_tags(html_content, '"toggleSellAuto()"', '<button', '</button>')
 
-                # Remove update button and input fields from sell table
-                html_content = remove_bracing_tags(html_content, 'class="sell-inputs"', '<div', '</div>')
+                # Keep update button and input fields visible so clicking assets can fill/edit values.
 
                 # Remove cancel buttons from orders table
                 html_content = remove_bracing_tags(html_content, 'onclick="cancelOrder', '<button', '</button>')
@@ -986,7 +985,7 @@ async def create_sell_order(request: SellOrderRequest, ctoken: str = Cookie(None
     try:
         payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
-        if username != "admin":
+        if username != sys_username:
             raise HTTPException(status_code=403, detail="Unauthorized user")
 
         sell_order(
@@ -1012,7 +1011,7 @@ async def async_cancel_order(request: dict, ctoken: str = Cookie(None)):
     try:
         payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
-        if username != "admin":
+        if username != sys_username:
             raise HTTPException(status_code=403, detail="Unauthorized user")
 
         uuid = request.get("uuid")
@@ -1046,7 +1045,7 @@ async def get_sell_price_api(currency: str, avg_buy_price: float, ctoken: str = 
     try:
         payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
-        if username != "admin":
+        if username != sys_username:
             raise HTTPException(status_code=403, detail="Unauthorized user")
 
         price = get_sell_price(currency, avg_buy_price)
@@ -1066,7 +1065,7 @@ async def submit_old_assets(request: SubmitOldAssetsRequest, ctoken: str = Cooki
     try:
         payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
-        if username != "admin":
+        if username != sys_username:
             raise HTTPException(status_code=403, detail="Unauthorized user")
 
         for update in request.updates:
@@ -1108,7 +1107,7 @@ async def add_old_asset(request: AddOldAssetRequest, ctoken: str = Cookie(None))
     try:
         payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
-        if username != "admin":
+        if username != sys_username:
             raise HTTPException(status_code=403, detail="Unauthorized user")
 
         old_assets.append(OneAsset(request.dict()))
@@ -1128,7 +1127,7 @@ async def add_old_order(request: AddOldOrderRequest, ctoken: str = Cookie(None))
     try:
         payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
-        if username != "admin":
+        if username != sys_username:
             raise HTTPException(status_code=403, detail="Unauthorized user")
 
         old_orders.append(OneOrder(request.dict()))
@@ -1200,7 +1199,7 @@ async def update_sell_price(request: dict, ctoken: str = Cookie(None)):
     try:
         payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
-        if username != "admin":
+        if username != sys_username:
             raise HTTPException(status_code=403, detail="Unauthorized user")
 
         currency = request.get("currency")
@@ -1250,7 +1249,7 @@ async def delete_sell_data(request: dict, ctoken: str = Cookie(None)):
     try:
         payload = jwt.decode(ctoken, secretKey, algorithms=["HS256"])
         username = payload.get("username")
-        if username != "admin":
+        if username != sys_username:
             raise HTTPException(status_code=403, detail="Unauthorized user")
 
         currency = request.get("currency")
