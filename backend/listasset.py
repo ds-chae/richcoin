@@ -665,7 +665,7 @@ async def root_page(request: Request, ctoken: str = Cookie(None)):
             
             # Add Stock button to header (top right corner, before logout/login button)
             stock_button = '<a href="/stock" class="stock-btn" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold; text-decoration: none; margin-right: 10px; display: inline-block; min-width: 80px; min-height: 44px; text-align: center; line-height: 28px;">📈 Stock</a>'
-            video_button = '<a href="http://sojucoin.com:8092/stream" class="video-btn" style="background: #17a2b8; color: white; border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold; text-decoration: none; margin-right: 10px; display: inline-block; min-width: 80px; min-height: 44px; text-align: center; line-height: 28px;">🎬 Video</a>'
+            video_button = '<a href="https://sojucoin.com:8082/stream" class="video-btn" style="background: #17a2b8; color: white; border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold; text-decoration: none; margin-right: 10px; display: inline-block; min-width: 80px; min-height: 44px; text-align: center; line-height: 28px;">🎬 Video</a>'
             
             # Login modal and script (required for the Login button in non-authenticated mode)
             login_modal = '''

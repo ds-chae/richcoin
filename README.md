@@ -182,3 +182,7 @@ gunicorn -w 4 -b 0.0.0.0:8003 listasset:app
 ---
 
 **SojuCoin Dashboard** - 암호화폐 자산 관리의 새로운 경험을 제공합니다.
+
+@backend/listasset.py 를 수정한다. 사용자가 login한 경우에 video 버튼을 추가한다. video 버튼을 클릭하면 http://sojucoin.com:8092/stream 페이지로 이동한다.
+
+port 번호를 8092에서 8082로, http를 https로 변경
