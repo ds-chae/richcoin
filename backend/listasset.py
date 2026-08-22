@@ -665,6 +665,7 @@ async def root_page(request: Request, ctoken: str = Cookie(None)):
             
             # Add Stock button to header (top right corner, before logout/login button)
             stock_button = '<a href="/stock" class="stock-btn" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold; text-decoration: none; margin-right: 10px; display: inline-block; min-width: 80px; min-height: 44px; text-align: center; line-height: 28px;">📈 Stock</a>'
+            video_button = '<a href="http://sojucoin.com:8092/stream" class="video-btn" style="background: #17a2b8; color: white; border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold; text-decoration: none; margin-right: 10px; display: inline-block; min-width: 80px; min-height: 44px; text-align: center; line-height: 28px;">🎬 Video</a>'
             
             # Login modal and script (required for the Login button in non-authenticated mode)
             login_modal = '''
@@ -758,10 +759,10 @@ async def root_page(request: Request, ctoken: str = Cookie(None)):
                 )
                 html_content = html_content.replace('</body>', login_modal + login_script + '</body>')
             else:
-                # Add stock button before logout button (authenticated state)
+                # Add stock and video buttons before logout button (authenticated state)
                 html_content = html_content.replace(
                     '<button onclick="logout()" class="logout-btn">🚪 Logout</button>',
-                    stock_button + '<button onclick="logout()" class="logout-btn">🚪 Logout</button>'
+                    stock_button + video_button + '<button onclick="logout()" class="logout-btn">🚪 Logout</button>'
                 )
                 
                 # Remove delete buttons from sell table (price section)
@@ -1476,4 +1477,5 @@ async def ingest_text(request: Request):
 if __name__ == "__main__":
     # Load dictionaries from JSON files at startup
     load_dictionaries_from_json()
+    print('Running on port 8003')
     uvicorn.run(app, host="0.0.0.0", port=8003, log_level="error")
